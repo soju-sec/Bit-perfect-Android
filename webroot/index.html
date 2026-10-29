@@ -308,27 +308,33 @@ echo "$hw"
             }
             logView.innerText = displayLog.trim();
 
+            let isDirect = afSection.includes("type 1 (DIRECT)") || (hwSection && hwSection.includes("rate:"));
+            let is1to1 = isDirect || (trackRate > 0 && trackRate === hwFreq);
+
             if (isPlaying && hwFreq > 0) {
                 rateEl.innerText = (hwFreq / 1000).toFixed(1) + " kHz";
                 formatEl.innerText = fmtStr;
-                routeEl.innerText = "DIRECT HARDWARE";
-                mixerEl.innerText = "BYPASSED (No 48k SRC)";
 
                 nodeApp.className = "pipeline-step perfect";
                 nodePol.className = "pipeline-step perfect";
                 nodeAf.className = "pipeline-step perfect";
                 nodeDac.className = "pipeline-step perfect";
 
-                let displayBadgeRate = trackRate > 0 ? (trackRate / 1000).toFixed(1) : (hwFreq / 1000).toFixed(1);
-                if (hwFreq > 48000 || trackRate > 48000) {
+                if (isDirect) {
+                    routeEl.innerText = "DIRECT PCM 1:1";
+                    mixerEl.innerText = "BYPASSED (Zero Mixer)";
                     badge.className = "badge badge-perfect";
-                    badge.innerText = "BIT-PERFECT HI-RES (" + displayBadgeRate + " kHz)";
-                } else if (hwFreq === 44100 || trackRate === 44100) {
+                    badge.innerText = "BIT-PERFECT 1:1 DIRECT (" + (hwFreq / 1000).toFixed(1) + " kHz)";
+                } else if (is1to1) {
+                    routeEl.innerText = "QUALCOMM DSP OFFLOAD";
+                    mixerEl.innerText = "1:1 NATIVE (No SRC)";
                     badge.className = "badge badge-perfect";
-                    badge.innerText = "BIT-PERFECT CD (44.1 kHz)";
+                    badge.innerText = "BIT-PERFECT (" + (hwFreq / 1000).toFixed(1) + " kHz)";
                 } else {
+                    routeEl.innerText = "QUALCOMM DSP MIXER";
+                    mixerEl.innerText = "SRC (" + (trackRate/1000).toFixed(1) + "k → " + (hwFreq/1000).toFixed(1) + "k)";
                     badge.className = "badge badge-direct";
-                    badge.innerText = "DIRECT (" + displayBadgeRate + " kHz)";
+                    badge.innerText = "HI-RES UNLOCKED (" + (trackRate/1000).toFixed(1) + "k → " + (hwFreq/1000).toFixed(1) + "k)";
                 }
             } else {
                 // Standby state

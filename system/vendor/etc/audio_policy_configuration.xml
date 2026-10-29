@@ -100,16 +100,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <mixPort name="deep_buffer" role="source"
                         flags="AUDIO_OUTPUT_FLAG_DEEP_BUFFER">
                     <profile name="" format="AUDIO_FORMAT_PCM_24_BIT_PACKED"
-                             samplingRates="48000 44100 88200 96000 176400 192000"
-                             channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
-                    <profile name="" format="AUDIO_FORMAT_PCM_FLOAT"
-                             samplingRates="48000 44100 88200 96000 176400 192000"
+                             samplingRates="48000"
                              channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
                     <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
-                             samplingRates="48000 44100 88200 96000 176400 192000"
-                             channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
-                    <profile name="" format="AUDIO_FORMAT_PCM_32_BIT"
-                             samplingRates="48000 44100 88200 96000 176400 192000"
+                             samplingRates="48000"
                              channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
                 </mixPort>
                 <mixPort name="mmap_no_irq_out" role="source" flags="AUDIO_OUTPUT_FLAG_DIRECT AUDIO_OUTPUT_FLAG_MMAP_NOIRQ">
@@ -125,22 +119,40 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <mixPort name="compress_passthrough" role="source"
                         flags="AUDIO_OUTPUT_FLAG_DIRECT AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD AUDIO_OUTPUT_FLAG_NON_BLOCKING">
                 </mixPort>
-                <mixPort name="direct_pcm" role="source"
-                        flags="AUDIO_OUTPUT_FLAG_DIRECT AUDIO_OUTPUT_FLAG_BIT_PERFECT">
+                <mixPort name="bit_perfect" role="source"
+                        flags="AUDIO_OUTPUT_FLAG_BIT_PERFECT">
                     <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
-                             samplingRates="8000 11025 12000 16000 22050 24000 32000 44100 48000 64000 88200 96000 128000 176400 192000 352800 384000"
-                             channelMasks="AUDIO_CHANNEL_OUT_STEREO AUDIO_CHANNEL_OUT_MONO"/>
-                    <profile name="" format="AUDIO_FORMAT_PCM_8_24_BIT"
-                             samplingRates="8000 11025 12000 16000 22050 24000 32000 44100 48000 64000 88200 96000 128000 176400 192000 352800 384000"
+                             samplingRates="44100 48000 88200 96000 176400 192000 352800 384000"
                              channelMasks="AUDIO_CHANNEL_OUT_STEREO AUDIO_CHANNEL_OUT_MONO"/>
                     <profile name="" format="AUDIO_FORMAT_PCM_24_BIT_PACKED"
-                             samplingRates="8000 11025 12000 16000 22050 24000 32000 44100 48000 64000 88200 96000 128000 176400 192000 352800 384000"
+                             samplingRates="44100 48000 88200 96000 176400 192000 352800 384000"
                              channelMasks="AUDIO_CHANNEL_OUT_STEREO AUDIO_CHANNEL_OUT_MONO"/>
-                  <profile name="" format="AUDIO_FORMAT_PCM_32_BIT"
-                             samplingRates="8000 11025 12000 16000 22050 24000 32000 44100 48000 64000 88200 96000 128000 176400 192000 352800 384000"
+                    <profile name="" format="AUDIO_FORMAT_PCM_8_24_BIT"
+                             samplingRates="44100 48000 88200 96000 176400 192000 352800 384000"
+                             channelMasks="AUDIO_CHANNEL_OUT_STEREO AUDIO_CHANNEL_OUT_MONO"/>
+                    <profile name="" format="AUDIO_FORMAT_PCM_32_BIT"
+                             samplingRates="44100 48000 88200 96000 176400 192000 352800 384000"
                              channelMasks="AUDIO_CHANNEL_OUT_STEREO AUDIO_CHANNEL_OUT_MONO"/>
                     <profile name="" format="AUDIO_FORMAT_PCM_FLOAT"
-                             samplingRates="8000 11025 12000 16000 22050 24000 32000 44100 48000 64000 88200 96000 128000 176400 192000 352800 384000"
+                             samplingRates="44100 48000 88200 96000 176400 192000 352800 384000"
+                             channelMasks="AUDIO_CHANNEL_OUT_STEREO AUDIO_CHANNEL_OUT_MONO"/>
+                </mixPort>
+                <mixPort name="direct_pcm" role="source"
+                        flags="AUDIO_OUTPUT_FLAG_DIRECT AUDIO_OUTPUT_FLAG_DIRECT_PCM AUDIO_OUTPUT_FLAG_BIT_PERFECT">
+                    <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
+                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000"
+                             channelMasks="AUDIO_CHANNEL_OUT_STEREO AUDIO_CHANNEL_OUT_MONO"/>
+                    <profile name="" format="AUDIO_FORMAT_PCM_8_24_BIT"
+                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000"
+                             channelMasks="AUDIO_CHANNEL_OUT_STEREO AUDIO_CHANNEL_OUT_MONO"/>
+                    <profile name="" format="AUDIO_FORMAT_PCM_24_BIT_PACKED"
+                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000"
+                             channelMasks="AUDIO_CHANNEL_OUT_STEREO AUDIO_CHANNEL_OUT_MONO"/>
+                    <profile name="" format="AUDIO_FORMAT_PCM_32_BIT"
+                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000"
+                             channelMasks="AUDIO_CHANNEL_OUT_STEREO AUDIO_CHANNEL_OUT_MONO"/>
+                    <profile name="" format="AUDIO_FORMAT_PCM_FLOAT"
+                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000"
                              channelMasks="AUDIO_CHANNEL_OUT_STEREO AUDIO_CHANNEL_OUT_MONO"/>
                 </mixPort>
                 <mixPort name="compressed_offload" role="source"
@@ -378,9 +390,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <route type="mix" sink="BT SCO Car Kit"
                        sources="primary output,deep_buffer,direct_pcm,compressed_offload,voip_rx"/>
                 <route type="mix" sink="USB Device Out"
-                       sources="direct_pcm,deep_buffer,compressed_offload,mmap_no_irq_out"/>
+                       sources="bit_perfect,direct_pcm,deep_buffer,compressed_offload,mmap_no_irq_out"/>
                 <route type="mix" sink="USB Headset Out"
-                       sources="direct_pcm,deep_buffer,compressed_offload,mmap_no_irq_out"/>
+                       sources="bit_perfect,direct_pcm,deep_buffer,compressed_offload,mmap_no_irq_out"/>
                 <route type="mix" sink="Telephony Tx"
                        sources="voice_tx,incall_music_uplink"/>
                 <route type="mix" sink="voice_rx"
