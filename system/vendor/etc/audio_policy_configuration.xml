@@ -138,7 +138,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                              channelMasks="AUDIO_CHANNEL_OUT_STEREO AUDIO_CHANNEL_OUT_MONO"/>
                 </mixPort>
                 <mixPort name="direct_pcm" role="source"
-                        flags="AUDIO_OUTPUT_FLAG_DIRECT AUDIO_OUTPUT_FLAG_DIRECT_PCM AUDIO_OUTPUT_FLAG_BIT_PERFECT">
+                        flags="AUDIO_OUTPUT_FLAG_DIRECT AUDIO_OUTPUT_FLAG_DIRECT_PCM">
                     <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
                              samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000"
                              channelMasks="AUDIO_CHANNEL_OUT_STEREO AUDIO_CHANNEL_OUT_MONO"/>
@@ -313,28 +313,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                              samplingRates="8000 11025 16000 22050 32000 44100 48000 64000 88200 96000 128000 176400 192000"/>
                 </devicePort>
                 <devicePort tagName="USB Device Out" type="AUDIO_DEVICE_OUT_USB_DEVICE" role="sink">
-                    <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
-                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
-                    <profile name="" format="AUDIO_FORMAT_PCM_24_BIT_PACKED"
-                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
-                    <profile name="" format="AUDIO_FORMAT_PCM_8_24_BIT"
-                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
-                    <profile name="" format="AUDIO_FORMAT_PCM_32_BIT"
-                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
-                    <profile name="" format="AUDIO_FORMAT_PCM_FLOAT"
-                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
                 </devicePort>
                 <devicePort tagName="USB Headset Out" type="AUDIO_DEVICE_OUT_USB_HEADSET" role="sink">
-                    <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
-                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
-                    <profile name="" format="AUDIO_FORMAT_PCM_24_BIT_PACKED"
-                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
-                    <profile name="" format="AUDIO_FORMAT_PCM_8_24_BIT"
-                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
-                    <profile name="" format="AUDIO_FORMAT_PCM_32_BIT"
-                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
-                    <profile name="" format="AUDIO_FORMAT_PCM_FLOAT"
-                             samplingRates="44100 48000 64000 88200 96000 128000 176400 192000 352800 384000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
                 </devicePort>
 
                 <!-- Input devices declaration, i.e. Source DEVICE PORT -->

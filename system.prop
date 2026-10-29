@@ -8,6 +8,7 @@ vendor.audio.feature.usb_offload.enable=true
 vendor.audio.feature.usb_offload_burst_mode.enable=true
 vendor.audio.feature.hifi_audio.enable=true
 vendor.audio.usb.super_high_res=true
+audio.deep_buffer.media=false
 audio.safemedia.bypass=true
 
 # AAudio MMAP & Direct

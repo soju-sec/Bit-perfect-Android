@@ -9,3 +9,7 @@ fi
 if [ -f "$MODDIR/system/vendor/etc/audio_effects.xml" ]; then
     mount -o bind "$MODDIR/system/vendor/etc/audio_effects.xml" /vendor/etc/audio_effects.xml
 fi
+
+if [ -f "$MODDIR/system/lib64/libaudiopolicymanagerdefault.so" ]; then
+    mount -o bind "$MODDIR/system/lib64/libaudiopolicymanagerdefault.so" /system/lib64/libaudiopolicymanagerdefault.so
+fi

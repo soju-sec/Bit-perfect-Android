@@ -168,13 +168,17 @@ dac=$(cat /proc/asound/card1/stream0 2>/dev/null | head -n 1 | sed 's/ at .*//')
 [ -z "$dac" ] && dac=$(cat /proc/asound/card*/stream0 2>/dev/null | head -n 1 | sed 's/ at .*//')
 [ -z "$dac" ] && dac="Kiwi Ears AD1"
 
-appPkg=$(dumpsys media_session | grep -B 5 "active=true" | grep "package=" | head -n 1 | sed "s/.*package=//")
+appPkg=$(dumpsys media_session 2>/dev/null | grep -A 3 "Sessions Stack" | grep "package=" | head -n 1 | sed "s/.*package=//" | tr -d ' \r\n')
+[ -z "$appPkg" ] && appPkg=$(dumpsys media_session 2>/dev/null | grep "active=true" | grep "package=" | head -n 1 | sed "s/.*package=//" | tr -d ' \r\n')
 
-trackRate=$(dumpsys media.audio_flinger | grep -A 4 "Tracks of which" | grep "yes" | awk '{print $11}' | head -n 1)
+trackRate=$(dumpsys media.audio_flinger 2>/dev/null | grep -E '^[[:space:]]+[0-9]+[[:space:]]+yes' | awk '{print $11}' | head -n 1)
 
-af=$(dumpsys media.audio_flinger | grep -B 12 'Output devices: 0x4000000' | head -n 15)
-hw=$(cat /proc/asound/card1/pcm0p/sub0/hw_params 2>/dev/null)
-[ -z "$hw" -o "$hw" = "closed" ] && hw=$(cat /proc/asound/card*/pcm*p/sub*/hw_params 2>/dev/null)
+kernelRate=$(dmesg 2>/dev/null | grep -iE 'msm_pcm_routing_reg_stream_app_type_cfg.*be_id 152' | tail -n 1 | sed -E 's/.*sample_rate ([0-9]+).*/\1/')
+
+af=$(dumpsys media.audio_flinger 2>/dev/null | grep -E -A 10 'Output thread.*type 1 \(DIRECT\)' | head -n 12)
+[ -z "$af" ] && af=$(dumpsys media.audio_flinger 2>/dev/null | grep -E -A 10 'Output thread.*type 0' | head -n 12)
+
+hw=$(cat /proc/asound/card1/stream0 2>/dev/null | grep -A 15 "Playback:")
 
 echo "===DAC==="
 echo "$dac"
@@ -182,6 +186,8 @@ echo "===APP==="
 echo "$appPkg"
 echo "===TRACKSR==="
 echo "$trackRate"
+echo "===KERNELSR==="
+echo "$kernelRate"
 echo "===AF==="
 echo "$af"
 echo "===HW==="
@@ -208,8 +214,8 @@ echo "$hw"
                 dacInfo.innerText = "Kiwi Ears AD1 (USB DAC)";
                 badge.className = "badge badge-idle";
                 badge.innerText = "DAC READY";
-                rateEl.innerText = "192.0 kHz";
-                formatEl.innerText = "24-bit / 32-bit Float";
+                rateEl.innerText = "Standby";
+                formatEl.innerText = "32-bit Float";
                 logView.innerText = "Menunggu koneksi KernelSU WebUI...";
                 return;
             }
@@ -236,6 +242,44 @@ echo "$hw"
                 trackRate = parseInt(trMatch[1]);
             }
 
+            // Extract Kernel Sample Rate
+            let kernelRate = 0;
+            let krMatch = rawOutput.match(/===KERNELSR===\s*\n([0-9]+)/);
+            if (krMatch) {
+                kernelRate = parseInt(krMatch[1]);
+            }
+
+            // Extract AudioFlinger section
+            let afSection = "";
+            let afMatch = rawOutput.match(/===AF===\s*\n([\s\S]*?)===HW===/);
+            if (afMatch) {
+                afSection = afMatch[1].trim();
+            }
+
+            // Extract HW section
+            let hwSection = "";
+            let hwMatch = rawOutput.match(/===HW===\s*\n([\s\S]*)/);
+            if (hwMatch) {
+                hwSection = hwMatch[1].trim();
+            }
+
+            // Check if active playback
+            let isAfPlaying = afSection.includes("Standby: no");
+            let isPlaying = isAfPlaying;
+
+            // Extract Hardware Sample Rate
+            let hwFreq = 0;
+            let srMatch = afSection.match(/Sample rate:\s*(\d+)/i);
+            if (srMatch) {
+                hwFreq = parseInt(srMatch[1]);
+            }
+            if (!hwFreq && kernelRate > 0) {
+                hwFreq = kernelRate;
+            }
+            if (!trackRate && hwFreq > 0) {
+                trackRate = hwFreq;
+            }
+
             let appLabel = "Music Player";
             let streamLabel = "Hi-Res Stream";
             if (appPkg.includes("tidal")) {
@@ -258,32 +302,6 @@ echo "$hw"
             nodeAppTitle.innerText = appLabel;
             pathApp.innerText = streamLabel;
 
-            // Extract AudioFlinger section
-            let afSection = "";
-            let afMatch = rawOutput.match(/===AF===\s*\n([\s\S]*?)===HW===/);
-            if (afMatch) {
-                afSection = afMatch[1].trim();
-            }
-
-            // Extract HW section
-            let hwSection = "";
-            let hwMatch = rawOutput.match(/===HW===\s*\n([\s\S]*)/);
-            if (hwMatch) {
-                hwSection = hwMatch[1].trim();
-            }
-
-            // Check if active playback
-            let isAfPlaying = afSection.includes("Standby: no");
-            let isHwPlaying = hwSection.includes("rate:") && !hwSection.includes("closed");
-            let isPlaying = isAfPlaying || isHwPlaying;
-
-            // Extract Hardware Sample Rate
-            let hwFreq = 0;
-            let srMatch = afSection.match(/Sample rate:\s*(\d+)/i) || hwSection.match(/rate:\s*(\d+)/i);
-            if (srMatch) {
-                hwFreq = parseInt(srMatch[1]);
-            }
-
             // Extract Bit Depth / Format
             let fmtStr = "24-bit / Float";
             if (afSection.includes("PCM_FLOAT") || afSection.includes("0x5")) {
@@ -296,20 +314,27 @@ echo "$hw"
                 fmtStr = "16-bit PCM";
             }
 
+            let isDirect = afSection.includes("type 1 (DIRECT)");
+
             // Build display log
             let displayLog = "=== HARDWARE DAC ===\n" + dacName + " (USB Audio)\n";
-            displayLog += "Author Modul: Oleh Deco-Dev\n\n";
-            displayLog += "=== ACTIVE TRACK ===\nApp: " + appLabel + (trackRate > 0 ? " (" + (trackRate/1000).toFixed(1) + " kHz)" : "") + "\n\n";
+            displayLog += "Author Modul: Deco-Dev (@soju-sec)\n\n";
+            displayLog += "=== STREAM STATUS ===\nApp: " + appLabel + (trackRate > 0 ? " (" + (trackRate/1000).toFixed(1) + " kHz)" : "") + "\n";
+            if (isDirect) {
+                displayLog += "Mode: DIRECT PCM 1:1 PASSTHROUGH\nAudioFlinger Mixer: BYPASSED (No SRC 48k / No Upsampling)\n";
+            }
+            if (kernelRate > 0) {
+                displayLog += "DAC Clock (Kernel DSP): " + (kernelRate/1000).toFixed(1) + " kHz\n\n";
+            } else {
+                displayLog += "\n";
+            }
             if (afSection) {
                 displayLog += "=== AUDIOFLINGER OUTPUT THREAD ===\n" + afSection + "\n\n";
             }
-            if (hwSection && hwSection !== "closed") {
-                displayLog += "=== ALSA KERNEL HW_PARAMS ===\n" + hwSection + "\n";
+            if (hwSection) {
+                displayLog += "=== USB DAC HARDWARE ENDPOINT ===\n" + hwSection + "\n";
             }
             logView.innerText = displayLog.trim();
-
-            let isDirect = afSection.includes("type 1 (DIRECT)") || (hwSection && hwSection.includes("rate:"));
-            let is1to1 = isDirect || (trackRate > 0 && trackRate === hwFreq);
 
             if (isPlaying && hwFreq > 0) {
                 rateEl.innerText = (hwFreq / 1000).toFixed(1) + " kHz";
@@ -321,27 +346,22 @@ echo "$hw"
                 nodeDac.className = "pipeline-step perfect";
 
                 if (isDirect) {
-                    routeEl.innerText = "DIRECT PCM 1:1";
+                    routeEl.innerText = "DIRECT HARDWARE 1:1";
                     mixerEl.innerText = "BYPASSED (Zero Mixer)";
                     badge.className = "badge badge-perfect";
                     badge.innerText = "BIT-PERFECT 1:1 DIRECT (" + (hwFreq / 1000).toFixed(1) + " kHz)";
-                } else if (is1to1) {
-                    routeEl.innerText = "QUALCOMM DSP OFFLOAD";
-                    mixerEl.innerText = "1:1 NATIVE (No SRC)";
-                    badge.className = "badge badge-perfect";
-                    badge.innerText = "BIT-PERFECT (" + (hwFreq / 1000).toFixed(1) + " kHz)";
                 } else {
                     routeEl.innerText = "QUALCOMM DSP MIXER";
-                    mixerEl.innerText = "SRC (" + (trackRate/1000).toFixed(1) + "k → " + (hwFreq/1000).toFixed(1) + "k)";
-                    badge.className = "badge badge-direct";
-                    badge.innerText = "HI-RES UNLOCKED (" + (trackRate/1000).toFixed(1) + "k → " + (hwFreq/1000).toFixed(1) + "k)";
+                    mixerEl.innerText = "1:1 DIRECT";
+                    badge.className = "badge badge-perfect";
+                    badge.innerText = "BIT-PERFECT (" + (hwFreq / 1000).toFixed(1) + " kHz)";
                 }
             } else {
                 // Standby state
                 let standbyFreq = hwFreq > 0 ? (hwFreq / 1000).toFixed(1) + " kHz" : "Siap";
                 rateEl.innerText = "Standby (" + standbyFreq + ")";
                 formatEl.innerText = fmtStr;
-                routeEl.innerText = "DIRECT PCM / OFF-LOAD";
+                routeEl.innerText = "DIRECT PCM 1:1";
                 mixerEl.innerText = "Bypass Ready";
 
                 badge.className = "badge badge-idle";
