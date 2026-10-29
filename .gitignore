@@ -1,0 +1,6 @@
+# Temporary & Backup directories
+module_backup/
+page.html
+*.bak
+*.tmp
+.DS_Store

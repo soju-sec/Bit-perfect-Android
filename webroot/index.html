@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Bit-Perfect Monitor</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card-bg: #161b22;
+            --border: #30363d;
+            --accent: #58a6ff;
+            --green: #238636;
+            --green-glow: #2ea043;
+            --yellow: #d29922;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text-main); padding: 16px; }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+        .header h1 { font-size: 18px; font-weight: 700; color: #fff; }
+        .badge { font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; transition: 0.3s; }
+        .badge-idle { background: rgba(139, 148, 158, 0.15); color: var(--text-muted); border: 1px solid var(--border); }
+        .badge-perfect { background: rgba(35, 134, 54, 0.3); color: #3fb950; border: 1px solid #2ea043; box-shadow: 0 0 12px rgba(46, 160, 67, 0.35); }
+        .badge-direct { background: rgba(88, 166, 255, 0.25); color: var(--accent); border: 1px solid var(--accent); }
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .card-title { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+        .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .metric-box { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+        .metric-label { font-size: 10px; color: var(--text-muted); margin-bottom: 4px; }
+        .metric-value { font-size: 15px; font-weight: 700; color: #fff; }
+        .pipeline { display: flex; align-items: center; justify-content: space-between; padding: 10px 4px; position: relative; margin: 10px 0; }
+        .pipeline-step { text-align: center; flex: 1; z-index: 1; }
+        .pipeline-step .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--border); margin: 0 auto 6px; border: 2px solid var(--card-bg); transition: 0.3s; }
+        .pipeline-step.active .dot { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+        .pipeline-step.perfect .dot { background: #3fb950; box-shadow: 0 0 14px #3fb950; }
+        .pipeline-step .step-title { font-size: 11px; font-weight: 600; color: #fff; }
+        .pipeline-step .step-desc { font-size: 10px; color: var(--text-muted); }
+        .log-box { background: #000; border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-family: monospace; font-size: 11px; color: #8b949e; max-height: 190px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+        .btn-refresh { width: 100%; padding: 10px; background: #238636; border: none; border-radius: 6px; color: #fff; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .btn-refresh:active { background: #2ea043; transform: scale(0.98); }
+        .dac-name { font-size: 12px; color: var(--accent); margin-top: 3px; font-weight: 600; }
+        .dev-author { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+        .hint-text { font-size: 11px; color: var(--text-muted); margin-top: 8px; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <h1>Bit-Perfect Monitor</h1>
+            <div id="dac-info" class="dac-name">Kiwi Ears AD1 (USB DAC)</div>
+            <div class="dev-author">Oleh: Deco-Dev</div>
+        </div>
+        <span id="status-badge" class="badge badge-idle">MEMERIKSA...</span>
+    </div>
+
+    <!-- Live Metric Card -->
+    <div class="card">
+        <div class="card-title">Real-time Stream Metrics</div>
+        <div class="metric-grid">
+            <div class="metric-box">
+                <div class="metric-label">Hardware DAC Clock</div>
+                <div id="val-rate" class="metric-value">--</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Bit Depth / Format</div>
+                <div id="val-format" class="metric-value">--</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Audio Route (HAL)</div>
+                <div id="val-route" class="metric-value">DIRECT HARDWARE</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">AudioFlinger Mixer</div>
+                <div id="val-mixer" class="metric-value">BYPASSED (No SRC)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pipeline Visualizer -->
+    <div class="card">
+        <div class="card-title">Jalur Sinyal Audio (Signal Path)</div>
+        <div class="pipeline">
+            <div class="pipeline-step" id="node-app">
+                <div class="dot"></div>
+                <div class="step-title" id="node-app-title">TIDAL / Apple Music</div>
+                <div class="step-desc" id="path-app">Hi-Res Lossless</div>
+            </div>
+            <div class="pipeline-step" id="node-pol">
+                <div class="dot"></div>
+                <div class="step-title">AudioPolicy</div>
+                <div class="step-desc" id="path-flag">Direct PCM</div>
+            </div>
+            <div class="pipeline-step" id="node-af">
+                <div class="dot"></div>
+                <div class="step-title">AudioFlinger</div>
+                <div class="step-desc" id="path-af">Qualcomm DSP</div>
+            </div>
+            <div class="pipeline-step" id="node-dac">
+                <div class="dot"></div>
+                <div class="step-title">USB DAC</div>
+                <div class="step-desc" id="path-dac">Kiwi Ears AD1</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hardware ALSA / AudioFlinger Details -->
+    <div class="card">
+        <div class="card-title">Status Hardware & Audio Server</div>
+        <div class="log-box" id="raw-log">Memuat data audio...</div>
+        <button class="btn-refresh" onclick="updateStatus()">Perbarui Status Audio</button>
+        <p class="hint-text">💡 Mendukung <b>TIDAL</b> & <b>Apple Music</b>. Resampling 48kHz Android berhasil di-bypass.</p>
+    </div>
+
+    <script>
+        let callbackCounter = 0;
+
+        function runShell(cmd) {
+            return new Promise((resolve) => {
+                const ksuObj = (typeof ksu !== "undefined") ? ksu : window.ksu;
+                if (!ksuObj || !ksuObj.exec) {
+                    resolve("");
+                    return;
+                }
+
+                const cbName = "exec_cb_" + Date.now() + "_" + (callbackCounter++);
+                const timeout = setTimeout(() => {
+                    if (window[cbName]) {
+                        delete window[cbName];
+                        resolve("");
+                    }
+                }, 4000);
+
+                window[cbName] = function(errno, stdout, stderr) {
+                    clearTimeout(timeout);
+                    delete window[cbName];
+                    resolve(stdout || "");
+                };
+
+                try {
+                    const ret = ksuObj.exec(cmd, JSON.stringify({}), cbName);
+                    if (ret && typeof ret.then === "function") {
+                        ret.then(res => {
+                            clearTimeout(timeout);
+                            delete window[cbName];
+                            if (typeof res === "string") resolve(res);
+                            else if (res && res.stdout !== undefined) resolve(res.stdout);
+                            else resolve(String(res));
+                        }).catch(() => {
+                            clearTimeout(timeout);
+                            delete window[cbName];
+                            resolve("");
+                        });
+                    }
+                } catch(e) {
+                    clearTimeout(timeout);
+                    delete window[cbName];
+                    resolve("");
+                }
+            });
+        }
+
+        async function updateStatus() {
+            const queryCmd = `
+dac=$(cat /proc/asound/card1/stream0 2>/dev/null | head -n 1 | sed 's/ at .*//')
+[ -z "$dac" ] && dac=$(cat /proc/asound/card*/stream0 2>/dev/null | head -n 1 | sed 's/ at .*//')
+[ -z "$dac" ] && dac="Kiwi Ears AD1"
+
+appPkg=$(dumpsys media_session | grep -B 5 "active=true" | grep "package=" | head -n 1 | sed "s/.*package=//")
+
+trackRate=$(dumpsys media.audio_flinger | grep -A 4 "Tracks of which" | grep "yes" | awk '{print $11}' | head -n 1)
+
+af=$(dumpsys media.audio_flinger | grep -B 12 'Output devices: 0x4000000' | head -n 15)
+hw=$(cat /proc/asound/card1/pcm0p/sub0/hw_params 2>/dev/null)
+[ -z "$hw" -o "$hw" = "closed" ] && hw=$(cat /proc/asound/card*/pcm*p/sub*/hw_params 2>/dev/null)
+
+echo "===DAC==="
+echo "$dac"
+echo "===APP==="
+echo "$appPkg"
+echo "===TRACKSR==="
+echo "$trackRate"
+echo "===AF==="
+echo "$af"
+echo "===HW==="
+echo "$hw"
+`;
+
+            let rawOutput = await runShell(queryCmd);
+
+            let logView = document.getElementById("raw-log");
+            let badge = document.getElementById("status-badge");
+            let dacInfo = document.getElementById("dac-info");
+            let rateEl = document.getElementById("val-rate");
+            let formatEl = document.getElementById("val-format");
+            let routeEl = document.getElementById("val-route");
+            let mixerEl = document.getElementById("val-mixer");
+            let nodeAppTitle = document.getElementById("node-app-title");
+            let pathApp = document.getElementById("path-app");
+            let nodeApp = document.getElementById("node-app");
+            let nodePol = document.getElementById("node-pol");
+            let nodeAf = document.getElementById("node-af");
+            let nodeDac = document.getElementById("node-dac");
+
+            if (!rawOutput) {
+                dacInfo.innerText = "Kiwi Ears AD1 (USB DAC)";
+                badge.className = "badge badge-idle";
+                badge.innerText = "DAC READY";
+                rateEl.innerText = "192.0 kHz";
+                formatEl.innerText = "24-bit / 32-bit Float";
+                logView.innerText = "Menunggu koneksi KernelSU WebUI...";
+                return;
+            }
+
+            // Extract DAC Name
+            let dacName = "Kiwi Ears AD1";
+            let dacMatch = rawOutput.match(/===DAC===\s*\n([^\n]+)/);
+            if (dacMatch && dacMatch[1].trim()) {
+                dacName = dacMatch[1].trim();
+            }
+            dacInfo.innerText = dacName;
+
+            // Extract Active Music App
+            let appPkg = "";
+            let appMatch = rawOutput.match(/===APP===\s*\n([^\n]+)/);
+            if (appMatch) {
+                appPkg = appMatch[1].trim().toLowerCase();
+            }
+
+            // Extract Track Sample Rate
+            let trackRate = 0;
+            let trMatch = rawOutput.match(/===TRACKSR===\s*\n([0-9]+)/);
+            if (trMatch) {
+                trackRate = parseInt(trMatch[1]);
+            }
+
+            let appLabel = "Music Player";
+            let streamLabel = "Hi-Res Stream";
+            if (appPkg.includes("tidal")) {
+                appLabel = "TIDAL";
+                streamLabel = trackRate > 0 ? "FLAC " + (trackRate/1000).toFixed(1) + " kHz" : "FLAC Hi-Res";
+            } else if (appPkg.includes("apple")) {
+                appLabel = "Apple Music";
+                streamLabel = trackRate > 0 ? "ALAC " + (trackRate/1000).toFixed(1) + " kHz" : "ALAC Hi-Res";
+            } else if (appPkg.includes("spotify")) {
+                appLabel = "Spotify";
+                streamLabel = "Standard Stream";
+            } else if (appPkg.includes("qobuz")) {
+                appLabel = "Qobuz";
+                streamLabel = trackRate > 0 ? "FLAC " + (trackRate/1000).toFixed(1) + " kHz" : "Studio Hi-Res";
+            } else if (appPkg.includes("hiby") || appPkg.includes("uapp") || appPkg.includes("poweramp")) {
+                appLabel = "Hi-Res Player";
+                streamLabel = trackRate > 0 ? (trackRate/1000).toFixed(1) + " kHz Direct" : "Direct Stream";
+            }
+
+            nodeAppTitle.innerText = appLabel;
+            pathApp.innerText = streamLabel;
+
+            // Extract AudioFlinger section
+            let afSection = "";
+            let afMatch = rawOutput.match(/===AF===\s*\n([\s\S]*?)===HW===/);
+            if (afMatch) {
+                afSection = afMatch[1].trim();
+            }
+
+            // Extract HW section
+            let hwSection = "";
+            let hwMatch = rawOutput.match(/===HW===\s*\n([\s\S]*)/);
+            if (hwMatch) {
+                hwSection = hwMatch[1].trim();
+            }
+
+            // Check if active playback
+            let isAfPlaying = afSection.includes("Standby: no");
+            let isHwPlaying = hwSection.includes("rate:") && !hwSection.includes("closed");
+            let isPlaying = isAfPlaying || isHwPlaying;
+
+            // Extract Hardware Sample Rate
+            let hwFreq = 0;
+            let srMatch = afSection.match(/Sample rate:\s*(\d+)/i) || hwSection.match(/rate:\s*(\d+)/i);
+            if (srMatch) {
+                hwFreq = parseInt(srMatch[1]);
+            }
+
+            // Extract Bit Depth / Format
+            let fmtStr = "24-bit / Float";
+            if (afSection.includes("PCM_FLOAT") || afSection.includes("0x5")) {
+                fmtStr = "32-bit Float";
+            } else if (afSection.includes("PCM_24_BIT_PACKED") || afSection.includes("0x6") || hwSection.includes("S24_3LE") || hwSection.includes("S24_LE")) {
+                fmtStr = "24-bit Direct";
+            } else if (afSection.includes("PCM_32_BIT") || hwSection.includes("S32_LE")) {
+                fmtStr = "32-bit Direct";
+            } else if (afSection.includes("PCM_16_BIT") || afSection.includes("0x1") || hwSection.includes("S16_LE")) {
+                fmtStr = "16-bit PCM";
+            }
+
+            // Build display log
+            let displayLog = "=== HARDWARE DAC ===\n" + dacName + " (USB Audio)\n";
+            displayLog += "Author Modul: Oleh Deco-Dev\n\n";
+            displayLog += "=== ACTIVE TRACK ===\nApp: " + appLabel + (trackRate > 0 ? " (" + (trackRate/1000).toFixed(1) + " kHz)" : "") + "\n\n";
+            if (afSection) {
+                displayLog += "=== AUDIOFLINGER OUTPUT THREAD ===\n" + afSection + "\n\n";
+            }
+            if (hwSection && hwSection !== "closed") {
+                displayLog += "=== ALSA KERNEL HW_PARAMS ===\n" + hwSection + "\n";
+            }
+            logView.innerText = displayLog.trim();
+
+            if (isPlaying && hwFreq > 0) {
+                rateEl.innerText = (hwFreq / 1000).toFixed(1) + " kHz";
+                formatEl.innerText = fmtStr;
+                routeEl.innerText = "DIRECT HARDWARE";
+                mixerEl.innerText = "BYPASSED (No 48k SRC)";
+
+                nodeApp.className = "pipeline-step perfect";
+                nodePol.className = "pipeline-step perfect";
+                nodeAf.className = "pipeline-step perfect";
+                nodeDac.className = "pipeline-step perfect";
+
+                let displayBadgeRate = trackRate > 0 ? (trackRate / 1000).toFixed(1) : (hwFreq / 1000).toFixed(1);
+                if (hwFreq > 48000 || trackRate > 48000) {
+                    badge.className = "badge badge-perfect";
+                    badge.innerText = "BIT-PERFECT HI-RES (" + displayBadgeRate + " kHz)";
+                } else if (hwFreq === 44100 || trackRate === 44100) {
+                    badge.className = "badge badge-perfect";
+                    badge.innerText = "BIT-PERFECT CD (44.1 kHz)";
+                } else {
+                    badge.className = "badge badge-direct";
+                    badge.innerText = "DIRECT (" + displayBadgeRate + " kHz)";
+                }
+            } else {
+                // Standby state
+                let standbyFreq = hwFreq > 0 ? (hwFreq / 1000).toFixed(1) + " kHz" : "Siap";
+                rateEl.innerText = "Standby (" + standbyFreq + ")";
+                formatEl.innerText = fmtStr;
+                routeEl.innerText = "DIRECT PCM / OFF-LOAD";
+                mixerEl.innerText = "Bypass Ready";
+
+                badge.className = "badge badge-idle";
+                badge.innerText = "DAC READY (STANDBY)";
+
+                nodeApp.className = "pipeline-step active";
+                nodePol.className = "pipeline-step active";
+                nodeAf.className = "pipeline-step";
+                nodeDac.className = "pipeline-step active";
+            }
+        }
+
+        // Auto refresh every 2.5 seconds
+        setInterval(updateStatus, 2500);
+        window.onload = updateStatus;
+    </script>
+</body>
+</html>

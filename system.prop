@@ -1,0 +1,15 @@
+# Expose All Hardware Sample Rates to Apple Music & AudioTrack
+ro.audio.samplerates=44100,48000,88200,96000,176400,192000,352800,384000
+persist.vendor.audio.samplerates=44100,48000,88200,96000,176400,192000,352800,384000
+ro.audio.flinger_standbytime_ms=2000
+
+# Direct PCM & USB Audio Optimization
+vendor.audio.feature.usb_offload.enable=true
+vendor.audio.feature.usb_offload_burst_mode.enable=true
+vendor.audio.feature.hifi_audio.enable=true
+vendor.audio.usb.super_high_res=true
+audio.safemedia.bypass=true
+
+# AAudio MMAP & Direct
+aaudio.mmap_policy=2
+aaudio.mmap_exclusive_policy=2
