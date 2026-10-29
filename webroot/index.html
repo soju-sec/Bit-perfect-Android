@@ -115,229 +115,131 @@
     </div>
 
     <script>
-        let callbackCounter = 0;
-
-        function runShell(cmd) {
-            return new Promise((resolve) => {
-                const ksuObj = (typeof ksu !== "undefined") ? ksu : window.ksu;
+        function ksuExec(cmd) {
+            return new Promise(function(resolve) {
+                var ksuObj = (typeof ksu !== "undefined") ? ksu : window.ksu;
                 if (!ksuObj || !ksuObj.exec) {
-                    resolve("");
+                    resolve({ errno: -1, stdout: "", stderr: "no bridge" });
                     return;
                 }
-
-                const cbName = "exec_cb_" + Date.now() + "_" + (callbackCounter++);
-                const timeout = setTimeout(() => {
+                var cbName = "__cb" + Date.now() + Math.floor(Math.random() * 1e6);
+                var timeout = setTimeout(function() {
                     if (window[cbName]) {
                         delete window[cbName];
-                        resolve("");
+                        resolve({ errno: -1, stdout: "", stderr: "timeout" });
                     }
-                }, 4000);
+                }, 3500);
 
                 window[cbName] = function(errno, stdout, stderr) {
                     clearTimeout(timeout);
                     delete window[cbName];
-                    resolve(stdout || "");
+                    resolve({ errno: errno, stdout: stdout || "", stderr: stderr || "" });
                 };
 
                 try {
-                    const ret = ksuObj.exec(cmd, JSON.stringify({}), cbName);
+                    var ret = ksuObj.exec(cmd, "{}", cbName);
                     if (ret && typeof ret.then === "function") {
-                        ret.then(res => {
+                        ret.then(function(res) {
                             clearTimeout(timeout);
                             delete window[cbName];
-                            if (typeof res === "string") resolve(res);
-                            else if (res && res.stdout !== undefined) resolve(res.stdout);
-                            else resolve(String(res));
-                        }).catch(() => {
+                            if (typeof res === "string") resolve({ errno: 0, stdout: res, stderr: "" });
+                            else if (res && res.stdout !== undefined) resolve(res);
+                            else resolve({ errno: 0, stdout: String(res), stderr: "" });
+                        }).catch(function(err) {
                             clearTimeout(timeout);
                             delete window[cbName];
-                            resolve("");
+                            resolve({ errno: -1, stdout: "", stderr: String(err) });
                         });
                     }
                 } catch(e) {
                     clearTimeout(timeout);
                     delete window[cbName];
-                    resolve("");
+                    resolve({ errno: -1, stdout: "", stderr: String(e) });
                 }
             });
         }
 
         async function updateStatus() {
-            const queryCmd = `
-dac=$(cat /proc/asound/card1/stream0 2>/dev/null | head -n 1 | sed 's/ at .*//')
-[ -z "$dac" ] && dac=$(cat /proc/asound/card*/stream0 2>/dev/null | head -n 1 | sed 's/ at .*//')
-[ -z "$dac" ] && dac="Kiwi Ears AD1"
+            var logView = document.getElementById("raw-log");
+            var badge = document.getElementById("status-badge");
+            var dacInfo = document.getElementById("dac-info");
+            var rateEl = document.getElementById("val-rate");
+            var formatEl = document.getElementById("val-format");
+            var routeEl = document.getElementById("val-route");
+            var mixerEl = document.getElementById("val-mixer");
+            var nodeAppTitle = document.getElementById("node-app-title");
+            var pathApp = document.getElementById("path-app");
+            var nodeApp = document.getElementById("node-app");
+            var nodePol = document.getElementById("node-pol");
+            var nodeAf = document.getElementById("node-af");
+            var nodeDac = document.getElementById("node-dac");
 
-appPkg=$(dumpsys media_session 2>/dev/null | grep -A 3 "Sessions Stack" | grep "package=" | head -n 1 | sed "s/.*package=//" | tr -d ' \r\n')
-[ -z "$appPkg" ] && appPkg=$(dumpsys media_session 2>/dev/null | grep "active=true" | grep "package=" | head -n 1 | sed "s/.*package=//" | tr -d ' \r\n')
+            var res = await ksuExec("sh /data/adb/modules/disable_resample_48k/monitor.sh");
+            var raw = (res && res.stdout) ? res.stdout.trim() : "";
 
-trackRate=$(dumpsys media.audio_flinger 2>/dev/null | grep -E '^[[:space:]]+[0-9]+[[:space:]]+yes' | awk '{print $11}' | head -n 1)
-
-kernelRate=$(dmesg 2>/dev/null | grep -iE 'msm_pcm_routing_reg_stream_app_type_cfg.*be_id 152' | tail -n 1 | sed -E 's/.*sample_rate ([0-9]+).*/\1/')
-
-af=$(dumpsys media.audio_flinger 2>/dev/null | grep -E -A 10 'Output thread.*type 1 \(DIRECT\)' | head -n 12)
-[ -z "$af" ] && af=$(dumpsys media.audio_flinger 2>/dev/null | grep -E -A 10 'Output thread.*type 0' | head -n 12)
-
-hw=$(cat /proc/asound/card1/stream0 2>/dev/null | grep -A 15 "Playback:")
-
-echo "===DAC==="
-echo "$dac"
-echo "===APP==="
-echo "$appPkg"
-echo "===TRACKSR==="
-echo "$trackRate"
-echo "===KERNELSR==="
-echo "$kernelRate"
-echo "===AF==="
-echo "$af"
-echo "===HW==="
-echo "$hw"
-`;
-
-            let rawOutput = await runShell(queryCmd);
-
-            let logView = document.getElementById("raw-log");
-            let badge = document.getElementById("status-badge");
-            let dacInfo = document.getElementById("dac-info");
-            let rateEl = document.getElementById("val-rate");
-            let formatEl = document.getElementById("val-format");
-            let routeEl = document.getElementById("val-route");
-            let mixerEl = document.getElementById("val-mixer");
-            let nodeAppTitle = document.getElementById("node-app-title");
-            let pathApp = document.getElementById("path-app");
-            let nodeApp = document.getElementById("node-app");
-            let nodePol = document.getElementById("node-pol");
-            let nodeAf = document.getElementById("node-af");
-            let nodeDac = document.getElementById("node-dac");
-
-            if (!rawOutput) {
+            if (!raw) {
                 dacInfo.innerText = "Kiwi Ears AD1 (USB DAC)";
                 badge.className = "badge badge-idle";
                 badge.innerText = "DAC READY";
                 rateEl.innerText = "Standby";
                 formatEl.innerText = "32-bit Float";
-                logView.innerText = "Menunggu koneksi KernelSU WebUI...";
+                routeEl.innerText = "DIRECT HARDWARE";
+                mixerEl.innerText = "BYPASSED (No SRC)";
+                logView.innerText = "Menunggu status audio dari KernelSU...";
                 return;
             }
 
-            // Extract DAC Name
-            let dacName = "Kiwi Ears AD1";
-            let dacMatch = rawOutput.match(/===DAC===\s*\n([^\n]+)/);
-            if (dacMatch && dacMatch[1].trim()) {
-                dacName = dacMatch[1].trim();
+            function getVal(key) {
+                var m = raw.match(new RegExp("^" + key + "=(.*)$", "m"));
+                return m ? m[1].trim() : "";
             }
+
+            var dacName = getVal("DAC") || "Kiwi Ears AD1";
+            var appName = getVal("APP") || "Music Player";
+            var appPkg = getVal("PKG") || "";
+            var playState = getVal("STATE") || "IDLE";
+            var route = getVal("ROUTE") || "STANDBY";
+            var trackRate = parseInt(getVal("TRACK_SR") || "0");
+            var hwRate = parseInt(getVal("HW_SR") || "0");
+            var fmtStr = getVal("FORMAT") || "24-bit PCM";
+            var isBitPerfect = getVal("BIT_PERFECT") === "YES";
+
+            var rawLog = "";
+            var logParts = raw.split("===RAW_LOG===");
+            if (logParts.length > 1) {
+                rawLog = logParts[1].trim();
+            }
+
             dacInfo.innerText = dacName;
+            nodeAppTitle.innerText = appName;
 
-            // Extract Active Music App
-            let appPkg = "";
-            let appMatch = rawOutput.match(/===APP===\s*\n([^\n]+)/);
-            if (appMatch) {
-                appPkg = appMatch[1].trim().toLowerCase();
+            var streamLabel = "Hi-Res Stream";
+            if (trackRate > 0) {
+                streamLabel = (trackRate / 1000).toFixed(1) + " kHz 1:1";
             }
-
-            // Extract Track Sample Rate
-            let trackRate = 0;
-            let trMatch = rawOutput.match(/===TRACKSR===\s*\n([0-9]+)/);
-            if (trMatch) {
-                trackRate = parseInt(trMatch[1]);
-            }
-
-            // Extract Kernel Sample Rate
-            let kernelRate = 0;
-            let krMatch = rawOutput.match(/===KERNELSR===\s*\n([0-9]+)/);
-            if (krMatch) {
-                kernelRate = parseInt(krMatch[1]);
-            }
-
-            // Extract AudioFlinger section
-            let afSection = "";
-            let afMatch = rawOutput.match(/===AF===\s*\n([\s\S]*?)===HW===/);
-            if (afMatch) {
-                afSection = afMatch[1].trim();
-            }
-
-            // Extract HW section
-            let hwSection = "";
-            let hwMatch = rawOutput.match(/===HW===\s*\n([\s\S]*)/);
-            if (hwMatch) {
-                hwSection = hwMatch[1].trim();
-            }
-
-            // Check if active playback
-            let isAfPlaying = afSection.includes("Standby: no");
-            let isPlaying = isAfPlaying;
-
-            // Extract Hardware Sample Rate
-            let hwFreq = 0;
-            let srMatch = afSection.match(/Sample rate:\s*(\d+)/i);
-            if (srMatch) {
-                hwFreq = parseInt(srMatch[1]);
-            }
-            if (!hwFreq && kernelRate > 0) {
-                hwFreq = kernelRate;
-            }
-            if (!trackRate && hwFreq > 0) {
-                trackRate = hwFreq;
-            }
-
-            let appLabel = "Music Player";
-            let streamLabel = "Hi-Res Stream";
-            if (appPkg.includes("tidal")) {
-                appLabel = "TIDAL";
-                streamLabel = trackRate > 0 ? "FLAC " + (trackRate/1000).toFixed(1) + " kHz" : "FLAC Hi-Res";
-            } else if (appPkg.includes("apple")) {
-                appLabel = "Apple Music";
-                streamLabel = trackRate > 0 ? "ALAC " + (trackRate/1000).toFixed(1) + " kHz" : "ALAC Hi-Res";
-            } else if (appPkg.includes("spotify")) {
-                appLabel = "Spotify";
-                streamLabel = "Standard Stream";
-            } else if (appPkg.includes("qobuz")) {
-                appLabel = "Qobuz";
-                streamLabel = trackRate > 0 ? "FLAC " + (trackRate/1000).toFixed(1) + " kHz" : "Studio Hi-Res";
-            } else if (appPkg.includes("hiby") || appPkg.includes("uapp") || appPkg.includes("poweramp")) {
-                appLabel = "Hi-Res Player";
-                streamLabel = trackRate > 0 ? (trackRate/1000).toFixed(1) + " kHz Direct" : "Direct Stream";
-            }
-
-            nodeAppTitle.innerText = appLabel;
             pathApp.innerText = streamLabel;
 
-            // Extract Bit Depth / Format
-            let fmtStr = "24-bit / Float";
-            if (afSection.includes("PCM_FLOAT") || afSection.includes("0x5")) {
-                fmtStr = "32-bit Float";
-            } else if (afSection.includes("PCM_24_BIT_PACKED") || afSection.includes("0x6") || hwSection.includes("S24_3LE") || hwSection.includes("S24_LE")) {
-                fmtStr = "24-bit Direct";
-            } else if (afSection.includes("PCM_32_BIT") || hwSection.includes("S32_LE")) {
-                fmtStr = "32-bit Direct";
-            } else if (afSection.includes("PCM_16_BIT") || afSection.includes("0x1") || hwSection.includes("S16_LE")) {
-                fmtStr = "16-bit PCM";
-            }
-
-            let isDirect = afSection.includes("type 1 (DIRECT)");
-
-            // Build display log
-            let displayLog = "=== HARDWARE DAC ===\n" + dacName + " (USB Audio)\n";
+            // Formatted report in log box
+            var displayLog = "=== HARDWARE DAC ===\n" + dacName + " (USB Audio)\n";
             displayLog += "Author Modul: Deco-Dev (@soju-sec)\n\n";
-            displayLog += "=== STREAM STATUS ===\nApp: " + appLabel + (trackRate > 0 ? " (" + (trackRate/1000).toFixed(1) + " kHz)" : "") + "\n";
-            if (isDirect) {
-                displayLog += "Mode: DIRECT PCM 1:1 PASSTHROUGH\nAudioFlinger Mixer: BYPASSED (No SRC 48k / No Upsampling)\n";
-            }
-            if (kernelRate > 0) {
-                displayLog += "DAC Clock (Kernel DSP): " + (kernelRate/1000).toFixed(1) + " kHz\n\n";
-            } else {
-                displayLog += "\n";
-            }
-            if (afSection) {
-                displayLog += "=== AUDIOFLINGER OUTPUT THREAD ===\n" + afSection + "\n\n";
-            }
-            if (hwSection) {
-                displayLog += "=== USB DAC HARDWARE ENDPOINT ===\n" + hwSection + "\n";
+            displayLog += "=== STREAM STATUS ===\n";
+            displayLog += "Aplikasi: " + appName + (appPkg ? " (" + appPkg + ")" : "") + "\n";
+            displayLog += "Playback: " + playState + "\n";
+            displayLog += "Track Clock: " + (trackRate > 0 ? (trackRate / 1000).toFixed(1) + " kHz" : "--") + "\n";
+            displayLog += "Hardware DAC Clock: " + (hwRate > 0 ? (hwRate / 1000).toFixed(1) + " kHz" : "--") + "\n";
+            displayLog += "Bit Depth / Format: " + fmtStr + "\n";
+            displayLog += "Status Jalur: " + (route === "DIRECT_PCM" ? "DIRECT PCM (BIT-PERFECT PASSTHROUGH)" : route) + "\n";
+            displayLog += "AudioFlinger Mixer: " + (route === "DIRECT_PCM" || route.includes("DIRECT") ? "BYPASSED (Zero SRC / No 48k Resample)" : "ACTIVE") + "\n\n";
+
+            if (rawLog) {
+                displayLog += "=== AUDIOFLINGER OUTPUT THREAD ===\n" + rawLog + "\n";
             }
             logView.innerText = displayLog.trim();
 
-            if (isPlaying && hwFreq > 0) {
-                rateEl.innerText = (hwFreq / 1000).toFixed(1) + " kHz";
+            var isPlaying = (playState === "PLAYING") || (route === "DIRECT_PCM");
+
+            if (isPlaying && hwRate > 0) {
+                rateEl.innerText = (hwRate / 1000).toFixed(1) + " kHz";
                 formatEl.innerText = fmtStr;
 
                 nodeApp.className = "pipeline-step perfect";
@@ -345,24 +247,37 @@ echo "$hw"
                 nodeAf.className = "pipeline-step perfect";
                 nodeDac.className = "pipeline-step perfect";
 
-                if (isDirect) {
+                if (isBitPerfect || route === "DIRECT_PCM") {
                     routeEl.innerText = "DIRECT HARDWARE 1:1";
                     mixerEl.innerText = "BYPASSED (Zero Mixer)";
                     badge.className = "badge badge-perfect";
-                    badge.innerText = "BIT-PERFECT 1:1 DIRECT (" + (hwFreq / 1000).toFixed(1) + " kHz)";
+                    badge.innerText = "BIT-PERFECT 1:1 (" + (hwRate / 1000).toFixed(1) + " kHz)";
                 } else {
-                    routeEl.innerText = "QUALCOMM DSP MIXER";
-                    mixerEl.innerText = "1:1 DIRECT";
-                    badge.className = "badge badge-perfect";
-                    badge.innerText = "BIT-PERFECT (" + (hwFreq / 1000).toFixed(1) + " kHz)";
+                    routeEl.innerText = "DIRECT PCM";
+                    mixerEl.innerText = "BYPASS 48k";
+                    badge.className = "badge badge-direct";
+                    badge.innerText = "HI-RES DIRECT (" + (hwRate / 1000).toFixed(1) + " kHz)";
                 }
-            } else {
-                // Standby state
-                let standbyFreq = hwFreq > 0 ? (hwFreq / 1000).toFixed(1) + " kHz" : "Siap";
-                rateEl.innerText = "Standby (" + standbyFreq + ")";
+            } else if (playState === "PAUSED") {
+                var dispRate = hwRate > 0 ? (hwRate / 1000).toFixed(1) + " kHz" : "Siap";
+                rateEl.innerText = dispRate + " (Paused)";
                 formatEl.innerText = fmtStr;
-                routeEl.innerText = "DIRECT PCM 1:1";
-                mixerEl.innerText = "Bypass Ready";
+                routeEl.innerText = "DIRECT HARDWARE 1:1";
+                mixerEl.innerText = "BYPASSED (Ready)";
+
+                badge.className = "badge badge-idle";
+                badge.innerText = "PAUSED (" + dispRate + ")";
+
+                nodeApp.className = "pipeline-step active";
+                nodePol.className = "pipeline-step active";
+                nodeAf.className = "pipeline-step";
+                nodeDac.className = "pipeline-step active";
+            } else {
+                var standbyRate = hwRate > 0 ? (hwRate / 1000).toFixed(1) + " kHz" : "Siap";
+                rateEl.innerText = "Standby (" + standbyRate + ")";
+                formatEl.innerText = fmtStr;
+                routeEl.innerText = "DIRECT HARDWARE 1:1";
+                mixerEl.innerText = "BYPASS READY";
 
                 badge.className = "badge badge-idle";
                 badge.innerText = "DAC READY (STANDBY)";
@@ -374,8 +289,8 @@ echo "$hw"
             }
         }
 
-        // Auto refresh every 2.5 seconds
-        setInterval(updateStatus, 2500);
+        // Auto refresh every 2 seconds
+        setInterval(updateStatus, 2000);
         window.onload = updateStatus;
     </script>
 </body>

@@ -1,6 +1,6 @@
 id=disable_resample_48k
 name=Bypass 48kHz Resampling (Hi-Res Bit-Perfect)
-version=v3.0 (Native Bit-Perfect)
-versionCode=30
+version=v3.1 (Native Bit-Perfect & KowSU Fix)
+versionCode=31
 author=Deco-Dev
-description=Membuka Bit-Perfect 1:1 Direct PCM murni untuk TIDAL & Apple Music tanpa software mixer / SRC upsampling, dynamic DAC clock matching, fix distorsi Kiwi Ears AD1, & WebUI Bit-Perfect Tracker.
+description=Membuka Bit-Perfect 1:1 Direct PCM murni untuk TIDAL & Apple Music tanpa software mixer / SRC upsampling, dynamic DAC clock matching, fix stuttering Hi-Res, & WebUI Bit-Perfect Tracker compatible KowSU UAPI 5.
