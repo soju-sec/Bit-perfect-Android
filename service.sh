@@ -44,5 +44,8 @@ resetprop -n af.fast_track_multiplier 2
 resetprop -n aaudio.mmap_policy 2
 resetprop -n aaudio.mmap_exclusive_policy 2
 
-# Clean audioserver restart
+# Clean audioserver restart & stale player session cleanup
 killall -9 audioserver
+sleep 1
+am force-stop com.aspiro.tidal 2>/dev/null
+am force-stop com.apple.android.music 2>/dev/null

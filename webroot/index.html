@@ -40,6 +40,8 @@
         .log-box { background: #000; border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-family: monospace; font-size: 11px; color: #8b949e; max-height: 190px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
         .btn-refresh { width: 100%; padding: 10px; background: #238636; border: none; border-radius: 6px; color: #fff; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 10px; }
         .btn-refresh:active { background: #2ea043; transform: scale(0.98); }
+        .btn-clear { width: 100%; padding: 10px; background: rgba(218, 54, 51, 0.15); border: 1px solid #da3633; border-radius: 6px; color: #f85149; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 8px; }
+        .btn-clear:active { background: rgba(218, 54, 51, 0.35); transform: scale(0.98); }
         .dac-name { font-size: 12px; color: var(--accent); margin-top: 3px; font-weight: 600; }
         .dev-author { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
         .hint-text { font-size: 11px; color: var(--text-muted); margin-top: 8px; line-height: 1.4; }
@@ -111,7 +113,8 @@
         <div class="card-title">Status Hardware & Audio Server</div>
         <div class="log-box" id="raw-log">Memuat data audio...</div>
         <button class="btn-refresh" onclick="updateStatus()">Perbarui Status Audio</button>
-        <p class="hint-text">💡 Mendukung <b>TIDAL</b> & <b>Apple Music</b>. Resampling 48kHz Android berhasil di-bypass.</p>
+        <button class="btn-clear" onclick="resetStaleSessions()">Bebaskan Output (Atasi Tabrakan / Patah-Patah)</button>
+        <p class="hint-text">💡 <b>Tips Bit-Perfect:</b> Jalur Direct Hardware DAC bersifat eksklusif. Jika berpindah antara TIDAL dan Apple Music, tutup (swipe away) aplikasi sebelumnya dari Recent Apps agar tidak terjadi perebutan jalur audio.</p>
     </div>
 
     <script>
@@ -287,6 +290,13 @@
                 nodeAf.className = "pipeline-step";
                 nodeDac.className = "pipeline-step active";
             }
+        }
+
+        async function resetStaleSessions() {
+            var logView = document.getElementById("raw-log");
+            logView.innerText = "Membersihkan sesi audio lama & melepaskan jalur hardware...";
+            await ksuExec("am force-stop com.aspiro.tidal; am force-stop com.apple.android.music");
+            setTimeout(updateStatus, 800);
         }
 
         // Auto refresh every 2 seconds

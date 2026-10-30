@@ -23,6 +23,10 @@ Modul KernelSU / KowSU / Magisk / APatch untuk **mem-bypass resampling paksa 48k
   - Menonaktifkan `vendor.audio.feature.usb_offload_burst_mode.enable=false` yang menyebabkan micro-underrun pada endpoint UAC2 USB DAC.
   - Menambahkan konfigurasi overlay `/vendor/etc/audio_io_policy.conf` untuk mengalokasikan sesi DSP Hi-Res 24-bit (`app_type 69940`) saat aplikasi meminta flag Direct PCM / Deep Buffer.
   - Menyetel multiplier buffer `af.fast_track_multiplier=2` dan standby timeout `ro.audio.flinger_standbytime_ms=1000` untuk transisi trek yang mulus tanpa tabrakan stream.
+- 🚀 **Zero-Stutter Bit-Perfect & Clean Session Routing (v3.3)**:
+  - Proteksi tabrakan audio track (`restoreTrack_l`) antara TIDAL dan Apple Music.
+  - Penambahan tombol **Bebaskan Output** di WebUI untuk membersihkan sesi audio lama secara instan jika berpindah antar aplikasi pemutar musik.
+  - Transisi streaming hardware DAC yang mulus tanpa underrun pada frekuensi 44.1kHz, 48kHz, 96kHz, hingga 192kHz.
 - ⚡ **AudioPolicy Direct Output Unlock (`libaudiopolicymanagerdefault.so`)**:
   - Mem-bypass batasan Android yang memaksa audio media (`AUDIO_OUTPUT_FLAG_DEEP_BUFFER`) masuk ke software mixer.
   - Mengizinkan pembukaan jalur `direct_pcm` murni secara dinamis untuk endpoint USB Audio.
@@ -48,7 +52,7 @@ Modul KernelSU / KowSU / Magisk / APatch untuk **mem-bypass resampling paksa 48k
 ## 🚀 Cara Pemasangan
 
 1. Unduh file zip flashable terbaru dari repositori ini:
-   - [`Bypass_48kHz_Resampling_BitPerfect_v3.2.zip`](Bypass_48kHz_Resampling_BitPerfect_v3.2.zip)
+   - [`Bypass_48kHz_Resampling_BitPerfect_v3.3.zip`](Bypass_48kHz_Resampling_BitPerfect_v3.3.zip)
 2. Buka manajer root Anda (**KernelSU**, **KowSU**, **APatch**, atau **Magisk**).
 3. Masuk ke menu **Modul** -> **Pasang dari penyimpanan**.
 4. Pilih file zip yang sudah diunduh, pasang, lalu **Reboot** perangkat Anda.
@@ -115,7 +119,7 @@ su -c "dmesg | grep 'handle_uaudio_stream_req.*en:1' | tail -n 1"
 │           └── audio_effects.xml                  # Konfigurasi efek audio
 ├── webroot/
 │   └── index.html                                  # WebUI Monitor Bit-Perfect KernelSU
-├── Bypass_48kHz_Resampling_BitPerfect_v3.1.zip     # Flashable Zip Installer siap pakai
+├── Bypass_48kHz_Resampling_BitPerfect_v3.3.zip     # Flashable Zip Installer siap pakai
 └── README.md                                       # Dokumentasi
 ```
 
