@@ -16,6 +16,9 @@ Modul KernelSU / KowSU / Magisk / APatch untuk **mem-bypass resampling paksa 48k
 - 🎧 **Dukungan Murni Bit-Perfect Apple Music & TIDAL**:
   - **TIDAL**: FLAC Hi-Res (Max 96kHz/192kHz) & FLAC HiFi (44.1kHz) langsung diteruskan ke `type 1 (DIRECT)` output thread tanpa software mixer.
   - **Apple Music**: ALAC Lossless (44.1kHz/48kHz) & Hi-Res Lossless (24-bit/96kHz & 192kHz) langsung ke DAC hardware endpoint.
+- 💎 **Prioritas Profil 24-bit Packed & 32-bit Integer (Fix 16-bit Lock)**:
+  - Mengatur urutan format profile pada `bit_perfect` & `direct_pcm` di `audio_policy_configuration.xml` dan `audio_io_policy.conf` agar `AUDIO_FORMAT_PCM_24_BIT_PACKED` dan `AUDIO_FORMAT_PCM_32_BIT` berada di urutan teratas sebelum 16-bit.
+  - Memastikan DAC menerima stream dalam format hardware asli `S24_3LE` (Altset 2) via Qualcomm DSP USB offload (`fmt:10`) tanpa konversi mixer.
 - 🚀 **Fix Stuttering / Sendat-sendat pada TIDAL Hi-Res**:
   - Menonaktifkan `vendor.audio.feature.usb_offload_burst_mode.enable=false` yang menyebabkan micro-underrun pada endpoint UAC2 USB DAC.
   - Menambahkan konfigurasi overlay `/vendor/etc/audio_io_policy.conf` untuk mengalokasikan sesi DSP Hi-Res 24-bit (`app_type 69940`) saat aplikasi meminta flag Direct PCM / Deep Buffer.
@@ -28,7 +31,7 @@ Modul KernelSU / KowSU / Magisk / APatch untuk **mem-bypass resampling paksa 48k
   - Mencegah driver audio mencoba mengirim 8-channel (7.1 surround) ke DAC eksternal 2-channel yang menyebabkan distorsi sember atau error hening (*Invalid argument* di ALSA).
 - 📊 **WebUI Bit-Perfect Tracker (Kompatibel KowSU UAPI 5)**:
   - Menggunakan modul script eksternal `monitor.sh` dan bridge `ksuExec` standar KowSU (`com.kowx712.supermanager`).
-  - Responsif, tidak lag/hang, langsung mendeteksi status pemutaran real-time, frekuensi DAC hardware, bit depth, dan rute DSP.
+  - Responsif, tidak lag/hang, langsung mendeteksi status pemutaran real-time, frekuensi DAC hardware, bit depth kernel DSP, dan rute Direct HAL.
 
 ---
 
@@ -45,7 +48,7 @@ Modul KernelSU / KowSU / Magisk / APatch untuk **mem-bypass resampling paksa 48k
 ## 🚀 Cara Pemasangan
 
 1. Unduh file zip flashable terbaru dari repositori ini:
-   - [`Bypass_48kHz_Resampling_BitPerfect_v3.1.zip`](Bypass_48kHz_Resampling_BitPerfect_v3.1.zip)
+   - [`Bypass_48kHz_Resampling_BitPerfect_v3.2.zip`](Bypass_48kHz_Resampling_BitPerfect_v3.2.zip)
 2. Buka manajer root Anda (**KernelSU**, **KowSU**, **APatch**, atau **Magisk**).
 3. Masuk ke menu **Modul** -> **Pasang dari penyimpanan**.
 4. Pilih file zip yang sudah diunduh, pasang, lalu **Reboot** perangkat Anda.

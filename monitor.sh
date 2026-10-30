@@ -76,12 +76,33 @@ hw_sr=$(dmesg 2>/dev/null | grep -E "handle_uaudio_stream_req.*en:1" | tail -n 1
 [ -z "$track_sr" ] && track_sr="0"
 [ -z "$hw_sr" ] && hw_sr="0"
 
-# Format friendly name
+# Format friendly name & Hardware Stream Bit Depth
+hw_fmt_code=$(dmesg 2>/dev/null | grep -E "handle_uaudio_stream_req.*en:1" | tail -n 1 | sed -E "s/.*fmt:([0-9]+).*/\1/")
+case "$hw_fmt_code" in
+    10) hw_fmt="24-bit PCM (S24_3LE)" ;;
+    14) hw_fmt="32-bit PCM (S32_LE)" ;;
+    2)  hw_fmt="16-bit PCM (S16_LE)" ;;
+    *)  hw_fmt="" ;;
+esac
+
 case "$fmt" in
-    *0x1*|*16_BIT*) fmt="16-bit PCM" ;;
     *0x6*|*24_BIT_PACKED*) fmt="24-bit PCM" ;;
     *0x5*|*FLOAT*) fmt="32-bit Float" ;;
     *0x3*|*32_BIT*) fmt="32-bit PCM" ;;
+    *0x1*|*16_BIT*)
+        if [ "$hw_fmt" = "24-bit PCM (S24_3LE)" ]; then
+            fmt="24-bit PCM (Hardware S24_3LE)"
+        else
+            fmt="16-bit PCM"
+        fi
+        ;;
+    *)
+        if [ -n "$hw_fmt" ]; then
+            fmt="$hw_fmt"
+        else
+            fmt="24-bit PCM"
+        fi
+        ;;
 esac
 
 # Bit-Perfect Evaluation
