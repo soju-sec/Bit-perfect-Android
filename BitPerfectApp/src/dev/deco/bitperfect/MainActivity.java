@@ -7,10 +7,16 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.List;
 
 public class MainActivity extends Activity {
     // Pages / Tabs
@@ -43,11 +49,21 @@ public class MainActivity extends Activity {
     private TextView tvDacRate;
     private TextView tvMatchBadge;
 
-    // Per-App Bypass Chips
-    private TextView chipApple;
-    private TextView chipTidal;
-    private TextView chipBitchord;
-    private TextView chipSpotify;
+    // Dynamic Apps Bypass Views
+    private TextView tvAppsCountBadge;
+    private TextView btnSelectAllApps;
+    private TextView btnDeselectAllApps;
+    private LinearLayout containerInstalledApps;
+    private TextView tvEmptyApps;
+    private List<AudioEngine.AudioAppInfo> mCachedAudioApps;
+
+    // Bit Depth Controller Buttons
+    private Button btnBitAuto;
+    private Button btnBit16;
+    private Button btnBit24;
+    private Button btnBit32;
+    private Button[] mBitButtons;
+    private int mSelectedBitDepth = 0; // 0 = Auto
 
     // Manual Rate Buttons
     private Button btnRate44k;
@@ -59,6 +75,7 @@ public class MainActivity extends Activity {
     private Button btnRate384k;
     private Button btnRateReset;
     private Button[] mRateButtons;
+    private int mSelectedRate = 0;
 
     // Settings Action
     private Button btnApplyEngine;
@@ -93,6 +110,7 @@ public class MainActivity extends Activity {
         setupNavigation();
         setupListeners();
         startMonitorService();
+        loadAndRenderInstalledApps();
     }
 
     private void initViews() {
@@ -128,13 +146,24 @@ public class MainActivity extends Activity {
         tvDacRate = findViewById(R.id.tvDacRate);
         tvMatchBadge = findViewById(R.id.tvMatchBadge);
 
-        // Apps
-        chipApple = findViewById(R.id.chipApple);
-        chipTidal = findViewById(R.id.chipTidal);
-        chipBitchord = findViewById(R.id.chipBitchord);
-        chipSpotify = findViewById(R.id.chipSpotify);
+        // Apps Bypass
+        tvAppsCountBadge = findViewById(R.id.tvAppsCountBadge);
+        btnSelectAllApps = findViewById(R.id.btnSelectAllApps);
+        btnDeselectAllApps = findViewById(R.id.btnDeselectAllApps);
+        containerInstalledApps = findViewById(R.id.containerInstalledApps);
+        tvEmptyApps = findViewById(R.id.tvEmptyApps);
 
-        // Rates
+        // Bit Depth Buttons
+        btnBitAuto = findViewById(R.id.btnBitAuto);
+        btnBit16 = findViewById(R.id.btnBit16);
+        btnBit24 = findViewById(R.id.btnBit24);
+        btnBit32 = findViewById(R.id.btnBit32);
+
+        mBitButtons = new Button[]{
+                btnBitAuto, btnBit16, btnBit24, btnBit32
+        };
+
+        // Rates Buttons
         btnRate44k = findViewById(R.id.btnRate44k);
         btnRate48k = findViewById(R.id.btnRate48k);
         btnRate88k = findViewById(R.id.btnRate88k);
@@ -151,14 +180,21 @@ public class MainActivity extends Activity {
 
         btnApplyEngine = findViewById(R.id.btnApplyEngine);
 
-        refreshAppChips();
+        mSelectedBitDepth = AudioEngine.getTargetBitDepth(this);
+        highlightBitDepthButton(mSelectedBitDepth);
+
         updateAutoSyncPill();
         updateTelemetry(false, 0, "", 0, "--", "Tidak Ada DAC USB", "DISCONNECTED", false, "Tidak Ada Pemutaran", false, "DAC Terputus");
     }
 
     private void setupNavigation() {
         navTabDashboard.setOnClickListener(v -> switchTab(0));
-        navTabApps.setOnClickListener(v -> switchTab(1));
+        navTabApps.setOnClickListener(v -> {
+            switchTab(1);
+            if (mCachedAudioApps == null || mCachedAudioApps.isEmpty()) {
+                loadAndRenderInstalledApps();
+            }
+        });
         navTabRate.setOnClickListener(v -> switchTab(2));
         navTabSettings.setOnClickListener(v -> switchTab(3));
 
@@ -194,11 +230,21 @@ public class MainActivity extends Activity {
             btnApplyEngine.setOnClickListener(v -> applyEngineWithToast());
         }
 
-        chipApple.setOnClickListener(v -> toggleAppChip(AudioEngine.PKG_APPLE_MUSIC, "Apple Music"));
-        chipTidal.setOnClickListener(v -> toggleAppChip(AudioEngine.PKG_TIDAL, "TIDAL"));
-        chipBitchord.setOnClickListener(v -> toggleAppChip(AudioEngine.PKG_BITCHORD, "Bitchord"));
-        chipSpotify.setOnClickListener(v -> toggleAppChip(AudioEngine.PKG_SPOTIFY, "Spotify"));
+        if (btnSelectAllApps != null) {
+            btnSelectAllApps.setOnClickListener(v -> toggleAllApps(true));
+        }
 
+        if (btnDeselectAllApps != null) {
+            btnDeselectAllApps.setOnClickListener(v -> toggleAllApps(false));
+        }
+
+        // Bit Depth Listeners
+        btnBitAuto.setOnClickListener(v -> selectBitDepth(0, btnBitAuto));
+        btnBit16.setOnClickListener(v -> selectBitDepth(16, btnBit16));
+        btnBit24.setOnClickListener(v -> selectBitDepth(24, btnBit24));
+        btnBit32.setOnClickListener(v -> selectBitDepth(32, btnBit32));
+
+        // Sample Rate Listeners
         btnRate44k.setOnClickListener(v -> selectRate(44100, btnRate44k));
         btnRate48k.setOnClickListener(v -> selectRate(48000, btnRate48k));
         btnRate88k.setOnClickListener(v -> selectRate(88200, btnRate88k));
@@ -207,6 +253,91 @@ public class MainActivity extends Activity {
         btnRate192k.setOnClickListener(v -> selectRate(192000, btnRate192k));
         btnRate384k.setOnClickListener(v -> selectRate(384000, btnRate384k));
         btnRateReset.setOnClickListener(v -> selectRate(0, btnRateReset));
+    }
+
+    private void loadAndRenderInstalledApps() {
+        if (tvEmptyApps != null) {
+            tvEmptyApps.setVisibility(View.VISIBLE);
+            tvEmptyApps.setText("Memindai aplikasi pemutar audio di sistem...");
+        }
+
+        new Thread(() -> {
+            List<AudioEngine.AudioAppInfo> apps = AudioEngine.getInstalledAudioApps(MainActivity.this);
+            mCachedAudioApps = apps;
+
+            runOnUiThread(() -> {
+                if (containerInstalledApps == null) return;
+                containerInstalledApps.removeAllViews();
+
+                if (tvAppsCountBadge != null) {
+                    tvAppsCountBadge.setText(apps.size() + " Terdeteksi");
+                }
+
+                if (apps.isEmpty()) {
+                    if (tvEmptyApps != null) {
+                        tvEmptyApps.setText("Tidak ada aplikasi audio yang terdeteksi");
+                        tvEmptyApps.setVisibility(View.VISIBLE);
+                    }
+                    return;
+                }
+
+                if (tvEmptyApps != null) {
+                    tvEmptyApps.setVisibility(View.GONE);
+                }
+
+                LayoutInflater inflater = LayoutInflater.from(MainActivity.this);
+                for (AudioEngine.AudioAppInfo app : apps) {
+                    View itemView = inflater.inflate(R.layout.item_app_bypass, containerInstalledApps, false);
+                    ImageView ivIcon = itemView.findViewById(R.id.ivAppIcon);
+                    TextView tvName = itemView.findViewById(R.id.tvAppName);
+                    TextView tvPkg = itemView.findViewById(R.id.tvAppPkg);
+                    TextView tvBadge = itemView.findViewById(R.id.tvAppBypassBadge);
+                    Switch swBypass = itemView.findViewById(R.id.swAppBypass);
+
+                    if (app.icon != null) {
+                        ivIcon.setImageDrawable(app.icon);
+                    }
+                    tvName.setText(app.appName);
+                    tvPkg.setText(app.packageName);
+                    swBypass.setChecked(app.isBypassed);
+                    updateAppItemBadge(tvBadge, app.isBypassed);
+
+                    View.OnClickListener toggleListener = v -> {
+                        boolean newState = !swBypass.isChecked();
+                        swBypass.setChecked(newState);
+                        app.isBypassed = newState;
+                        AudioEngine.setAppBypassed(MainActivity.this, app.packageName, newState);
+                        updateAppItemBadge(tvBadge, newState);
+                        Toast.makeText(MainActivity.this, app.appName + ": " + (newState ? "Bypass Mixer Aktif" : "Mixer Standar"), Toast.LENGTH_SHORT).show();
+                    };
+
+                    itemView.setOnClickListener(toggleListener);
+                    swBypass.setOnClickListener(toggleListener);
+
+                    containerInstalledApps.addView(itemView);
+                }
+            });
+        }).start();
+    }
+
+    private void updateAppItemBadge(TextView badge, boolean isBypassed) {
+        if (isBypassed) {
+            badge.setText("Bypass Mixer: AKTIF");
+            badge.setTextColor(getColor(R.color.accent_coral));
+        } else {
+            badge.setText("Mixer Standar (Resample)");
+            badge.setTextColor(getColor(R.color.text_muted));
+        }
+    }
+
+    private void toggleAllApps(boolean enabled) {
+        new Thread(() -> {
+            AudioEngine.setAllAppsBypassed(MainActivity.this, enabled);
+            runOnUiThread(() -> {
+                loadAndRenderInstalledApps();
+                Toast.makeText(MainActivity.this, enabled ? "Semua aplikasi diizinkan bypass mixer" : "Semua aplikasi diarahkan ke mixer standar", Toast.LENGTH_SHORT).show();
+            });
+        }).start();
     }
 
     private void applyEngineWithToast() {
@@ -228,34 +359,49 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void toggleAppChip(String pkg, String appName) {
-        boolean current = AudioEngine.isAppBypassed(this, pkg);
-        AudioEngine.setAppBypassed(this, pkg, !current);
-        refreshAppChips();
-        Toast.makeText(this, appName + ": " + (!current ? "Bypass Mixer Aktif" : "Audio Standar (Mixer)"), Toast.LENGTH_SHORT).show();
+    private void selectBitDepth(int bitDepth, Button clickedBtn) {
+        mSelectedBitDepth = bitDepth;
+        for (Button b : mBitButtons) {
+            b.setBackgroundResource(R.drawable.btn_rate_light);
+            b.setTextColor(getColor(R.color.text_title));
+        }
+        clickedBtn.setBackgroundResource(R.drawable.btn_rate_light_active);
+        clickedBtn.setTextColor(getColor(R.color.card_bg));
+
+        AudioEngine.setTargetBitDepth(this, bitDepth);
+
+        new Thread(() -> {
+            AudioEngine.setDacRate(MainActivity.this, mSelectedRate, bitDepth, true);
+            runOnUiThread(() -> {
+                String text;
+                if (bitDepth == 0) {
+                    text = "Bit Depth: Auto 1:1 (Mengikuti sumber track)";
+                } else {
+                    text = "Bit Depth DAC disetel ke " + bitDepth + "-bit PCM";
+                }
+                Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show();
+            });
+        }).start();
     }
 
-    private void refreshAppChips() {
-        setChipState(chipApple, AudioEngine.PKG_APPLE_MUSIC, "🍎 Apple Music");
-        setChipState(chipTidal, AudioEngine.PKG_TIDAL, "🌊 TIDAL");
-        setChipState(chipBitchord, AudioEngine.PKG_BITCHORD, "🎵 Bitchord");
-        setChipState(chipSpotify, AudioEngine.PKG_SPOTIFY, "🟢 Spotify");
-    }
+    private void highlightBitDepthButton(int bitDepth) {
+        Button target = btnBitAuto;
+        if (bitDepth == 16) target = btnBit16;
+        else if (bitDepth == 24) target = btnBit24;
+        else if (bitDepth == 32) target = btnBit32;
 
-    private void setChipState(TextView chip, String pkg, String label) {
-        boolean active = AudioEngine.isAppBypassed(this, pkg);
-        if (active) {
-            chip.setText(label);
-            chip.setTextColor(getColor(R.color.accent_coral));
-            chip.setBackgroundResource(R.drawable.bg_chip_app_active);
-        } else {
-            chip.setText(label);
-            chip.setTextColor(getColor(R.color.text_body));
-            chip.setBackgroundResource(R.drawable.bg_chip_app_inactive);
+        for (Button b : mBitButtons) {
+            b.setBackgroundResource(R.drawable.btn_rate_light);
+            b.setTextColor(getColor(R.color.text_title));
+        }
+        if (target != null) {
+            target.setBackgroundResource(R.drawable.btn_rate_light_active);
+            target.setTextColor(getColor(R.color.card_bg));
         }
     }
 
     private void selectRate(int rateHz, Button clickedBtn) {
+        mSelectedRate = rateHz;
         for (Button b : mRateButtons) {
             b.setBackgroundResource(R.drawable.btn_rate_light);
             b.setTextColor(getColor(R.color.text_title));
@@ -264,7 +410,7 @@ public class MainActivity extends Activity {
         clickedBtn.setTextColor(getColor(R.color.card_bg));
 
         new Thread(() -> {
-            AudioEngine.setDacRate(MainActivity.this, rateHz, true);
+            AudioEngine.setDacRate(MainActivity.this, rateHz, mSelectedBitDepth, true);
             runOnUiThread(() -> {
                 String text = rateHz == 0 ? "DAC direset ke 48 kHz (Default Mixer)" : "Clock DAC diubah ke " + formatRate(rateHz);
                 Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show();

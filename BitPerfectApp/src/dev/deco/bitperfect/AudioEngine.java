@@ -1,12 +1,19 @@
 package dev.deco.bitperfect;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.graphics.drawable.Drawable;
 import android.media.AudioAttributes;
 import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioMixerAttributes;
+import android.net.Uri;
+import android.os.Build;
 import android.os.SystemClock;
 import android.util.Log;
 
@@ -14,19 +21,33 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class AudioEngine {
     private static final String TAG = "BitPerfect_AudioEngine";
     private static final String PREF_NAME = "bitperfect_prefs";
     private static final String PREF_BYPASS_APPS = "bypassed_packages";
+    public static final String PREF_TARGET_BIT_DEPTH = "target_bit_depth";
 
-    public static final String PKG_APPLE_MUSIC = "com.apple.android.music";
-    public static final String PKG_TIDAL = "com.aspiro.tidal";
-    public static final String PKG_BITCHORD = "com.music.bitchord";
-    public static final String PKG_SPOTIFY = "com.spotify.music";
-    public static final String PKG_YT_MUSIC = "com.google.android.apps.youtube.music";
+    public static class AudioAppInfo {
+        public String packageName;
+        public String appName;
+        public Drawable icon;
+        public boolean isBypassed;
+
+        public AudioAppInfo(String packageName, String appName, Drawable icon, boolean isBypassed) {
+            this.packageName = packageName;
+            this.appName = appName;
+            this.icon = icon;
+            this.isBypassed = isBypassed;
+        }
+    }
 
     public static AudioDeviceInfo getUsbDevice(Context context) {
         AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
@@ -104,7 +125,24 @@ public class AudioEngine {
     }
 
     private static String readAlsaDacName() {
-        for (int i = 0; i <= 3; i++) {
+        // Universal parser: scan /proc/asound/cards for USB-Audio
+        File cardsFile = new File("/proc/asound/cards");
+        if (cardsFile.exists()) {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(cardsFile)))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    if (line.contains("USB-Audio") || line.contains("USB Audio")) {
+                        String[] parts = line.split(" - ");
+                        if (parts.length > 1 && !parts[1].trim().isEmpty()) {
+                            return parts[1].trim();
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // Scan card0 to card7 stream0 line 1
+        for (int i = 0; i <= 7; i++) {
             File f = new File("/proc/asound/card" + i + "/stream0");
             if (f.exists()) {
                 try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(f)))) {
@@ -120,7 +158,7 @@ public class AudioEngine {
 
     private static boolean readAlsaStreamStatus(AudioStatus status) {
         boolean found = false;
-        for (int i = 0; i <= 3; i++) {
+        for (int i = 0; i <= 7; i++) {
             File f = new File("/proc/asound/card" + i + "/stream0");
             if (f.exists()) {
                 found = true;
@@ -280,6 +318,17 @@ public class AudioEngine {
         if (pkg.contains("spotify")) return "Spotify";
         if (pkg.contains("mornye")) return "Mornye Music";
         if (pkg.contains("youtube.music")) return "YouTube Music";
+        if (pkg.contains("audioplayer")) return "Poweramp";
+        if (pkg.contains("twelve")) return "Twelve";
+        if (pkg.contains("neutron")) return "Neutron Player";
+        if (pkg.contains("usbaudioplayerpro")) return "UAPP";
+        if (pkg.contains("hiby")) return "HiBy Music";
+        if (pkg.contains("fiio")) return "FiiO Music";
+        if (pkg.contains("qobuz")) return "Qobuz";
+        if (pkg.contains("deezer")) return "Deezer";
+        if (pkg.contains("foobar")) return "foobar2000";
+        if (pkg.contains("musicolet")) return "Musicolet";
+        if (pkg.contains("vimusic")) return "ViMusic";
         if (pkg.contains("youtube")) return "YouTube";
         if (pkg.contains("tiktok")) return "TikTok";
         if (pkg.contains("instagram")) return "Instagram";
@@ -287,15 +336,149 @@ public class AudioEngine {
         return pkg;
     }
 
+    public static boolean isExcludedNonPlayerPackage(String pkg) {
+        if (pkg == null) return true;
+        String lower = pkg.toLowerCase();
+        return lower.contains("termux") ||
+               lower.contains("nbu.files") ||
+               lower.contains("documentsui") ||
+               lower.contains("filemanager") ||
+               lower.contains("gallery") ||
+               lower.contains("photos") ||
+               lower.contains("telecom") ||
+               lower.contains("hearing") ||
+               lower.contains("speech") ||
+               lower.equals("android");
+    }
+
+    public static List<AudioAppInfo> getInstalledAudioApps(Context context) {
+        PackageManager pm = context.getPackageManager();
+        Map<String, AudioAppInfo> appMap = new HashMap<>();
+
+        // Known audio player packages to discover universally
+        String[] popularAudioPackages = new String[]{
+                "com.apple.android.music",
+                "com.aspiro.tidal",
+                "com.spotify.music",
+                "com.music.bitchord",
+                "com.google.android.apps.youtube.music",
+                "com.maxmpz.audioplayer",
+                "org.lineageos.twelve",
+                "com.neutroncode.mp",
+                "com.extreamsd.usbaudioplayerpro",
+                "com.hiby.music",
+                "com.fiio.music",
+                "com.qobuz.music",
+                "deezer.android.app",
+                "com.foobar2000.foobar2000",
+                "in.krosbits.musicolet",
+                "it.vfsfitvnm.vimusic",
+                "com.zionhuang.music",
+                "com.aimp.player",
+                "com.kodarkooperativet.blackplayerfree",
+                "com.kodarkooperativet.blackplayerex",
+                "com.onkyo.jp.musicplayer",
+                "com.sonyericsson.music",
+                "com.sec.android.app.music",
+                "com.miui.player",
+                "app.revanced.android.apps.youtube.music",
+                "com.soundcloud.android",
+                "com.amazon.mp3"
+        };
+
+        for (String pkg : popularAudioPackages) {
+            try {
+                ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
+                String label = pm.getApplicationLabel(ai).toString();
+                Drawable icon = pm.getApplicationIcon(ai);
+                appMap.put(pkg, new AudioAppInfo(pkg, label, icon, isAppBypassed(context, pkg)));
+            } catch (Exception ignored) {}
+        }
+
+        // 1. Query Music Category Intent
+        try {
+            Intent musicIntent = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MUSIC);
+            List<ResolveInfo> musicActivities = pm.queryIntentActivities(musicIntent, 0);
+            for (ResolveInfo ri : musicActivities) {
+                if (ri.activityInfo != null) {
+                    String pkg = ri.activityInfo.packageName;
+                    if (!appMap.containsKey(pkg) && !pkg.equals(context.getPackageName())) {
+                        try {
+                            ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
+                            String label = pm.getApplicationLabel(ai).toString();
+                            Drawable icon = pm.getApplicationIcon(ai);
+                            appMap.put(pkg, new AudioAppInfo(pkg, label, icon, isAppBypassed(context, pkg)));
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // 2. Query Audio MIME Handler Intent
+        try {
+            Intent audioIntent = new Intent(Intent.ACTION_VIEW);
+            audioIntent.setDataAndType(Uri.parse("file://sample.mp3"), "audio/*");
+            List<ResolveInfo> audioActivities = pm.queryIntentActivities(audioIntent, 0);
+            for (ResolveInfo ri : audioActivities) {
+                if (ri.activityInfo != null) {
+                    String pkg = ri.activityInfo.packageName;
+                    if (isExcludedNonPlayerPackage(pkg)) continue;
+                    if (!appMap.containsKey(pkg) && !pkg.equals(context.getPackageName())) {
+                        try {
+                            ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
+                            String label = pm.getApplicationLabel(ai).toString();
+                            Drawable icon = pm.getApplicationIcon(ai);
+                            appMap.put(pkg, new AudioAppInfo(pkg, label, icon, isAppBypassed(context, pkg)));
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // 3. Scan all installed applications for CATEGORY_AUDIO and music keywords
+        try {
+            List<ApplicationInfo> allApps = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+            for (ApplicationInfo ai : allApps) {
+                String pkg = ai.packageName;
+                if (appMap.containsKey(pkg) || pkg.equals(context.getPackageName())) continue;
+                if (isExcludedNonPlayerPackage(pkg)) continue;
+
+                boolean isAudioCategory = false;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    if (ai.category == ApplicationInfo.CATEGORY_AUDIO) {
+                        isAudioCategory = true;
+                    }
+                }
+
+                String lower = pkg.toLowerCase();
+                boolean isMusicKeyword = lower.contains("music") || lower.contains("player") || lower.contains("audio") || lower.contains("flac");
+
+                if (isAudioCategory || isMusicKeyword) {
+                    if (pm.getLaunchIntentForPackage(pkg) != null) {
+                        try {
+                            String label = pm.getApplicationLabel(ai).toString();
+                            Drawable icon = pm.getApplicationIcon(ai);
+                            appMap.put(pkg, new AudioAppInfo(pkg, label, icon, isAppBypassed(context, pkg)));
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        List<AudioAppInfo> resultList = new ArrayList<>(appMap.values());
+        Collections.sort(resultList, (a, b) -> a.appName.compareToIgnoreCase(b.appName));
+        return resultList;
+    }
+
     public static boolean isAppBypassed(Context context, String pkg) {
         if (pkg == null || pkg.isEmpty()) return false;
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        Set<String> set = prefs.getStringSet(PREF_BYPASS_APPS, null);
-        if (set == null) {
-            // Default bypassed apps
-            return pkg.equals(PKG_APPLE_MUSIC) || pkg.equals(PKG_TIDAL) || pkg.equals(PKG_BITCHORD);
+        if (!prefs.contains(PREF_BYPASS_APPS)) {
+            // First time default: enable bypass for detected audio apps
+            return true;
         }
-        return set.contains(pkg);
+        Set<String> set = prefs.getStringSet(PREF_BYPASS_APPS, null);
+        return set != null && set.contains(pkg);
     }
 
     public static void setAppBypassed(Context context, String pkg, boolean enabled) {
@@ -305,9 +488,9 @@ public class AudioEngine {
         if (set != null) {
             newSet.addAll(set);
         } else {
-            newSet.add(PKG_APPLE_MUSIC);
-            newSet.add(PKG_TIDAL);
-            newSet.add(PKG_BITCHORD);
+            for (AudioAppInfo app : getInstalledAudioApps(context)) {
+                newSet.add(app.packageName);
+            }
         }
         if (enabled) {
             newSet.add(pkg);
@@ -315,6 +498,27 @@ public class AudioEngine {
             newSet.remove(pkg);
         }
         prefs.edit().putStringSet(PREF_BYPASS_APPS, newSet).apply();
+    }
+
+    public static void setAllAppsBypassed(Context context, boolean enabled) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        Set<String> newSet = new HashSet<>();
+        if (enabled) {
+            for (AudioAppInfo app : getInstalledAudioApps(context)) {
+                newSet.add(app.packageName);
+            }
+        }
+        prefs.edit().putStringSet(PREF_BYPASS_APPS, newSet).apply();
+    }
+
+    public static int getTargetBitDepth(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        return prefs.getInt(PREF_TARGET_BIT_DEPTH, 0); // 0 = Auto (1:1 Native)
+    }
+
+    public static void setTargetBitDepth(Context context, int bitDepth) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putInt(PREF_TARGET_BIT_DEPTH, bitDepth).apply();
     }
 
     public static boolean applyEngineTweaks(Context context) {
@@ -346,7 +550,11 @@ public class AudioEngine {
     }
 
     public static boolean setDacRate(Context context, int targetRate, boolean safePause) {
-        Log.i(TAG, "setDacRate: " + targetRate + " Hz, safePause=" + safePause);
+        return setDacRate(context, targetRate, getTargetBitDepth(context), safePause);
+    }
+
+    public static boolean setDacRate(Context context, int targetRate, int targetBitDepth, boolean safePause) {
+        Log.i(TAG, "setDacRate: " + targetRate + " Hz, bitDepth=" + targetBitDepth + ", safePause=" + safePause);
 
         if (safePause) {
             dispatchMediaKey("127"); // KEYCODE_MEDIA_PAUSE
@@ -365,14 +573,24 @@ public class AudioEngine {
                         .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                         .build();
 
-                if (targetRate == 0) {
+                if (targetRate == 0 && targetBitDepth == 0) {
                     am.clearPreferredMixerAttributes(mediaAttrs, usbDev);
                     success = true;
                 } else {
+                    int finalRate = targetRate > 0 ? targetRate : 48000;
+                    int encoding = AudioFormat.ENCODING_PCM_24BIT_PACKED;
+                    if (targetBitDepth == 16) {
+                        encoding = AudioFormat.ENCODING_PCM_16BIT;
+                    } else if (targetBitDepth == 24) {
+                        encoding = AudioFormat.ENCODING_PCM_24BIT_PACKED;
+                    } else if (targetBitDepth == 32) {
+                        encoding = AudioFormat.ENCODING_PCM_32BIT;
+                    }
+
                     AudioFormat format = new AudioFormat.Builder()
-                            .setSampleRate(targetRate)
+                            .setSampleRate(finalRate)
                             .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
-                            .setEncoding(AudioFormat.ENCODING_PCM_24BIT_PACKED)
+                            .setEncoding(encoding)
                             .build();
 
                     AudioMixerAttributes mixerAttr = new AudioMixerAttributes.Builder(format)
@@ -384,18 +602,34 @@ public class AudioEngine {
             }
         } catch (Exception ignored) {}
 
-        // Root fallback
-        if (!success) {
-            try {
-                if (targetRate == 0) {
-                    runRootCommand("resetprop -n persist.vendor.audio.samplerates 44100,48000,88200,96000,176400,192000,352800,384000");
-                } else {
-                    runRootCommand("resetprop -n persist.vendor.audio.samplerates " + targetRate);
-                }
-                success = true;
-            } catch (Exception e) {
-                Log.e(TAG, "Root fallback error", e);
+        // Root / Vendor properties fallback (universal across Snapdragon & OEM HALs)
+        try {
+            StringBuilder cmds = new StringBuilder();
+            if (targetRate == 0) {
+                cmds.append("resetprop -n persist.vendor.audio.samplerates 44100,48000,88200,96000,176400,192000,352800,384000\n");
+            } else {
+                cmds.append("resetprop -n persist.vendor.audio.samplerates ").append(targetRate).append("\n");
             }
+
+            if (targetBitDepth == 16) {
+                cmds.append("resetprop -n persist.vendor.audio_hal.dsp_bit_width_enforce_mode 16\n");
+                cmds.append("resetprop -n persist.vendor.audio.format.24bit false\n");
+            } else if (targetBitDepth == 24) {
+                cmds.append("resetprop -n persist.vendor.audio_hal.dsp_bit_width_enforce_mode 24\n");
+                cmds.append("resetprop -n persist.vendor.audio.format.24bit true\n");
+            } else if (targetBitDepth == 32) {
+                cmds.append("resetprop -n persist.vendor.audio_hal.dsp_bit_width_enforce_mode 32\n");
+                cmds.append("resetprop -n persist.vendor.audio.format.24bit true\n");
+                cmds.append("resetprop -n persist.vendor.audio.format.32bit true\n");
+            } else { // Auto
+                cmds.append("resetprop -n persist.vendor.audio.format.24bit true\n");
+                cmds.append("resetprop -n persist.vendor.audio_hal.dsp_bit_width_enforce_mode 24\n");
+            }
+
+            runRootCommand(cmds.toString());
+            success = true;
+        } catch (Exception e) {
+            Log.e(TAG, "Root fallback error", e);
         }
 
         if (safePause) {

@@ -270,113 +270,98 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <RelativeLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Target Bypass"
-                    android:textColor="@color/text_title"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
+                    android:layout_marginBottom="4dp">
+
+                    <TextView
+                        android:id="@+id/tvAppsTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Target Bypass"
+                        android:textColor="@color/text_title"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvAppsCountBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toEndOf="@id/tvAppsTitle"
+                        android:layout_alignBaseline="@id/tvAppsTitle"
+                        android:layout_marginStart="8dp"
+                        android:text="0 Terdeteksi"
+                        android:textColor="@color/accent_coral"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </RelativeLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Aplikasi yang diizinkan mem-bypass mixer Android ke DAC"
+                    android:text="Aplikasi audio yang diizinkan mem-bypass mixer Android langsung ke DAC"
                     android:textColor="@color/text_muted"
                     android:textSize="12sp"
-                    android:layout_marginTop="4dp"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginBottom="12dp" />
 
-                <!-- Category Chips Card -->
+                <!-- Action Bar: Select All / Deselect All -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_card_white"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    android:elevation="2dp"
+                    android:orientation="horizontal"
                     android:layout_marginBottom="14dp">
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="APLIKASI MUSIK HI-RES"
-                        android:textColor="@color/text_muted"
-                        android:textSize="11sp"
+                        android:id="@+id/btnSelectAllApps"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="✓  Pilih Semua"
+                        android:textColor="@color/accent_coral"
+                        android:background="@drawable/bg_pill_button"
+                        android:textSize="12sp"
                         android:textStyle="bold"
-                        android:letterSpacing="0.08"
-                        android:layout_marginBottom="12dp" />
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginEnd="8dp" />
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginBottom="10dp">
-
-                        <TextView
-                            android:id="@+id/chipApple"
-                            android:layout_width="0dp"
-                            android:layout_height="42dp"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:text="🍎 Apple Music"
-                            android:textColor="@color/accent_coral"
-                            android:background="@drawable/bg_chip_app_active"
-                            android:textSize="12sp"
-                            android:textStyle="bold"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:layout_marginEnd="6dp" />
-
-                        <TextView
-                            android:id="@+id/chipTidal"
-                            android:layout_width="0dp"
-                            android:layout_height="42dp"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:text="🌊 TIDAL"
-                            android:textColor="@color/accent_coral"
-                            android:background="@drawable/bg_chip_app_active"
-                            android:textSize="12sp"
-                            android:textStyle="bold"
-                            android:clickable="true"
-                            android:focusable="true" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:id="@+id/chipBitchord"
-                            android:layout_width="0dp"
-                            android:layout_height="42dp"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:text="🎵 Bitchord"
-                            android:textColor="@color/accent_coral"
-                            android:background="@drawable/bg_chip_app_active"
-                            android:textSize="12sp"
-                            android:textStyle="bold"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:layout_marginEnd="6dp" />
-
-                        <TextView
-                            android:id="@+id/chipSpotify"
-                            android:layout_width="0dp"
-                            android:layout_height="42dp"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:text="🟢 Spotify"
-                            android:textColor="@color/text_body"
-                            android:background="@drawable/bg_chip_app_inactive"
-                            android:textSize="12sp"
-                            android:clickable="true"
-                            android:focusable="true" />
-                    </LinearLayout>
+                    <TextView
+                        android:id="@+id/btnDeselectAllApps"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="✕  Nonaktifkan Semua"
+                        android:textColor="@color/text_muted"
+                        android:background="@drawable/bg_pill_button"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true" />
                 </LinearLayout>
+
+                <!-- Dynamic Apps Container -->
+                <LinearLayout
+                    android:id="@+id/containerInstalledApps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <!-- Empty state if scanning or none -->
+                <TextView
+                    android:id="@+id/tvEmptyApps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_white"
+                    android:padding="24dp"
+                    android:gravity="center"
+                    android:text="Memindai aplikasi pemutar audio di sistem..."
+                    android:textColor="@color/text_muted"
+                    android:textSize="13sp"
+                    android:visibility="gone"
+                    android:layout_marginBottom="14dp" />
 
                 <!-- Video Apps Safe Rule Banner -->
                 <LinearLayout
@@ -385,7 +370,8 @@
                     android:background="@drawable/bg_card_white"
                     android:orientation="vertical"
                     android:padding="16dp"
-                    android:elevation="2dp">
+                    android:elevation="2dp"
+                    android:layout_marginTop="4dp">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -400,7 +386,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Aplikasi video seperti YouTube, TikTok, dan Netflix secara otomatis dikunci pada mixer standar 48 kHz. Hal ini mencegah frame lag atau audio patah-patah saat menonton video."
+                        android:text="Aplikasi video (YouTube, TikTok, Netflix) secara otomatis dilindungi di mixer standar 48 kHz agar video tidak mengalami delay/patah-patah saat berganti frame."
                         android:textColor="@color/text_body"
                         android:textSize="12sp"
                         android:lineSpacingExtra="3dp" />
@@ -409,7 +395,7 @@
             </LinearLayout>
 
 
-            <!-- ================= PAGE 3: MANUAL RATE CONTROLLER ================= -->
+            <!-- ================= PAGE 3: MANUAL RATE & BIT CONTROLLER ================= -->
             <LinearLayout
                 android:id="@+id/pageRate"
                 android:layout_width="match_parent"
@@ -420,7 +406,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Clock Controller"
+                    android:text="Clock &amp; Format Controller"
                     android:textColor="@color/text_title"
                     android:textSize="22sp"
                     android:textStyle="bold" />
@@ -428,13 +414,13 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Kunci frekuensi hardware DAC ke sample rate tertentu"
+                    android:text="Kunci resolusi bit depth dan sample rate hardware DAC"
                     android:textColor="@color/text_muted"
                     android:textSize="12sp"
                     android:layout_marginTop="4dp"
                     android:layout_marginBottom="16dp" />
 
-                <!-- 2x4 Grid Card -->
+                <!-- Bit Depth Card -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -443,6 +429,108 @@
                     android:padding="16dp"
                     android:elevation="2dp"
                     android:layout_marginBottom="14dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="KEDALAMAN BIT (BIT DEPTH)"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Format kuantisasi sample PCM yang dikirim ke hardware DAC"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- 4 Bit Depth Buttons: Auto (1:1), 16-bit, 24-bit, 32-bit -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btnBitAuto"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:text="Auto (1:1)"
+                            android:textColor="@color/card_bg"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:background="@drawable/btn_rate_light_active"
+                            android:textAllCaps="false"
+                            android:layout_marginEnd="6dp" />
+
+                        <Button
+                            android:id="@+id/btnBit16"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:text="16-bit"
+                            android:textColor="@color/text_title"
+                            android:textSize="12sp"
+                            android:background="@drawable/btn_rate_light"
+                            android:textAllCaps="false"
+                            android:layout_marginEnd="6dp" />
+
+                        <Button
+                            android:id="@+id/btnBit24"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:text="24-bit"
+                            android:textColor="@color/text_title"
+                            android:textSize="12sp"
+                            android:background="@drawable/btn_rate_light"
+                            android:textAllCaps="false"
+                            android:layout_marginEnd="6dp" />
+
+                        <Button
+                            android:id="@+id/btnBit32"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:text="32-bit"
+                            android:textColor="@color/text_title"
+                            android:textSize="12sp"
+                            android:background="@drawable/btn_rate_light"
+                            android:textAllCaps="false" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Sample Rate 2x4 Grid Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_white"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:elevation="2dp"
+                    android:layout_marginBottom="14dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="FREKUENSI SAMPLE (SAMPLE RATE)"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Kunci clock hardware DAC ke frekuensi tertentu"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:layout_marginBottom="12dp" />
 
                     <!-- Row 1: 44.1k, 48k, 88.2k, 96k -->
                     <LinearLayout
