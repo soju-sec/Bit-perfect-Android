@@ -1,26 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- RTK / Design Tokens -->
-    <color name="bg_canvas">#0c0e12</color>
-    <color name="bg_card">#13161c</color>
-    <color name="bg_card_inner">#181c24</color>
-    <color name="border_subtle">#252b38</color>
-    <color name="border_active">#10b981</color>
-    
+    <!-- Material You Dark Glass Canvas & Surfaces -->
+    <color name="bg_canvas">#0a0d14</color>
+    <color name="glass_card_bg_start">#1c2232</color>
+    <color name="glass_card_bg_end">#121622</color>
+    <color name="glass_card_stroke">#323f56</color>
+    <color name="glass_tile_bg">#161c28</color>
+    <color name="glass_tile_stroke">#263144</color>
+    <color name="glass_divider">#20293a</color>
+
+    <!-- Material You Accents -->
     <color name="accent_emerald">#10b981</color>
     <color name="accent_emerald_bg">#064e3b</color>
+    <color name="accent_emerald_stroke">#059669</color>
     <color name="accent_amber">#f59e0b</color>
     <color name="accent_amber_bg">#451a03</color>
-    <color name="accent_cyan">#0ea5e9</color>
-    
-    <color name="text_primary">#ffffff</color>
+    <color name="accent_cyan">#38bdf8</color>
+
+    <!-- Typographic Hierarchy -->
+    <color name="text_primary">#f8fafc</color>
     <color name="text_secondary">#94a3b8</color>
     <color name="text_muted">#64748b</color>
     <color name="text_emerald">#34d399</color>
     <color name="text_amber">#fbbf24</color>
-    
-    <color name="btn_surface">#1a1e27</color>
-    <color name="btn_surface_active">#10b981</color>
-    <color name="btn_surface_danger">#2b1216</color>
-    <color name="btn_text_danger">#f87171</color>
+
+    <!-- Chips & Buttons -->
+    <color name="chip_active_bg">#13382c</color>
+    <color name="chip_active_stroke">#10b981</color>
+    <color name="chip_inactive_bg">#151b27</color>
+    <color name="chip_inactive_stroke">#263245</color>
+    <color name="btn_glass_bg">#18202d</color>
+    <color name="btn_glass_stroke">#2a364a</color>
+    <color name="btn_glass_active_bg">#0e4433</color>
+    <color name="btn_glass_active_stroke">#10b981</color>
+    <color name="btn_danger_bg">#2b1216</color>
+    <color name="btn_danger_text">#f87171</color>
 </resources>

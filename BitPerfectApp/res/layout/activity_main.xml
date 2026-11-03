@@ -1,117 +1,146 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_canvas"
-    android:fillViewport="true"
-    android:fitsSystemWindows="true">
+    android:background="@color/bg_canvas">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="32dp"
-        android:paddingBottom="48dp">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:fitsSystemWindows="true"
+        android:scrollbars="none">
 
-        <!-- Top Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/tvAppTitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/app_name"
-                    android:textColor="@color/text_primary"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
-                    android:fontFamily="sans-serif-medium" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/app_subtitle"
-                    android:textColor="@color/text_muted"
-                    android:textSize="12sp"
-                    android:layout_marginTop="2dp" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/tvEngineBadge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="ROOT ENGINE"
-                android:textColor="@color/accent_emerald"
-                android:background="@drawable/badge_route_direct"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- 1. HERO TELEMETRY CARD -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_card_telemetry"
             android:orientation="vertical"
-            android:padding="16dp"
-            android:layout_marginBottom="16dp">
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="28dp"
+            android:paddingBottom="130dp">
 
-            <!-- Route Status Badge -->
-            <TextView
-                android:id="@+id/tvRouteBadge"
-                android:layout_width="match_parent"
-                android:layout_height="38dp"
-                android:gravity="center"
-                android:text="@string/status_direct_bitperfect"
-                android:textColor="@color/accent_emerald"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.04"
-                android:background="@drawable/badge_route_direct"
-                android:layout_marginBottom="14dp" />
-
-            <!-- Telemetry 2-Column Split Tile -->
-            <LinearLayout
+            <!-- 1. Top Bar: Minimalist & Clean -->
+            <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="12dp">
+                android:layout_marginBottom="14dp">
 
-                <!-- Left Column: Source Track -->
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_tile_inner"
-                    android:orientation="vertical"
-                    android:padding="12dp"
-                    android:layout_marginEnd="6dp">
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvAppTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="BitPerfect Live"
+                        android:textColor="@color/text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/label_source_stream"
+                        android:text="Live Pipeline &amp; Zero-SRC DAC Engine"
                         android:textColor="@color/text_muted"
-                        android:textSize="10sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.05"
-                        android:layout_marginBottom="6dp" />
+                        android:textSize="11sp"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/btnEngineStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:text="⚡ BYPASS ENGINE"
+                    android:textColor="@color/accent_emerald"
+                    android:background="@drawable/chip_app_active"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="7dp"
+                    android:paddingBottom="7dp"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true" />
+            </RelativeLayout>
+
+            <!-- 2. Hero Center Card: Segmented Arch & Big Live Stat (Like kcal in mockup) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_glass_card"
+                android:orientation="vertical"
+                android:paddingTop="14dp"
+                android:paddingBottom="16dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:gravity="center_horizontal"
+                android:layout_marginBottom="14dp">
+
+                <!-- The Live Audio Pipeline Segmented Arch Gauge -->
+                <dev.deco.bitperfect.AudioPipelineGaugeView
+                    android:id="@+id/pipelineGaugeView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <!-- Action Pill under Arch (like the '+' button in mockup) -->
+                <TextView
+                    android:id="@+id/btnToggleAutoSync"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:gravity="center"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp"
+                    android:text="⚡ Auto-Sync Clock: AKTIF"
+                    android:textColor="@color/accent_emerald"
+                    android:background="@drawable/chip_app_active"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginTop="4dp" />
+
+            </LinearLayout>
+
+            <!-- 3. Telemetry Stream Cards (Styled like Lunch/Breakfast cards in mockup) -->
+            
+            <!-- Card 1: Stream Sumber (Track Source) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_glass_card"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="10dp">
+
+                <!-- Left: 44dp Squircle Icon -->
+                <RelativeLayout
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_icon_squircle">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerInParent="true"
+                        android:text="🎵"
+                        android:textSize="18sp" />
+                </RelativeLayout>
+
+                <!-- Middle: App & Track Info -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="14dp"
+                    android:orientation="vertical">
 
                     <TextView
                         android:id="@+id/tvActiveApp"
@@ -119,39 +148,77 @@
                         android:layout_height="wrap_content"
                         android:text="Apple Music"
                         android:textColor="@color/text_primary"
-                        android:textSize="14sp"
+                        android:textSize="15sp"
                         android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvSourceDetail"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Stream Sumber • Lossless"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <!-- Right: Big Rate Number & Format -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:orientation="vertical">
 
                     <TextView
                         android:id="@+id/tvSourceRate"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="96.0 kHz • 24-bit"
+                        android:text="96.0 kHz"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvSourceBitDepth"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="24-bit PCM"
                         android:textColor="@color/accent_emerald"
-                        android:textSize="12sp"
+                        android:textSize="11sp"
                         android:textStyle="bold"
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
+            </LinearLayout>
 
-                <!-- Right Column: Hardware DAC -->
+            <!-- Card 2: Hardware DAC (Endpoint) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_glass_card"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="14dp">
+
+                <!-- Left: 44dp Squircle Icon -->
+                <RelativeLayout
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_icon_squircle">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerInParent="true"
+                        android:text="🎧"
+                        android:textSize="18sp" />
+                </RelativeLayout>
+
+                <!-- Middle: DAC Name & ALSA Endpoint -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:background="@drawable/bg_tile_inner"
-                    android:orientation="vertical"
-                    android:padding="12dp"
-                    android:layout_marginStart="6dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/label_dac_endpoint"
-                        android:textColor="@color/text_muted"
-                        android:textSize="10sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.05"
-                        android:layout_marginBottom="6dp" />
+                    android:layout_marginStart="14dp"
+                    android:orientation="vertical">
 
                     <TextView
                         android:id="@+id/tvDacName"
@@ -159,512 +226,354 @@
                         android:layout_height="wrap_content"
                         android:text="Kiwi Ears AD1"
                         android:textColor="@color/text_primary"
-                        android:textSize="14sp"
+                        android:textSize="15sp"
                         android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvDacFormat"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="USB Audio • S24_3LE"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <!-- Right: Big DAC Clock & Match -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:orientation="vertical">
 
                     <TextView
                         android:id="@+id/tvDacRate"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="96.0 kHz • S24_3LE"
+                        android:text="96.0 kHz"
                         android:textColor="@color/accent_emerald"
-                        android:textSize="12sp"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvMatchBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Zero SRC 1:1"
+                        android:textColor="@color/accent_emerald"
+                        android:textSize="11sp"
                         android:textStyle="bold"
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Bottom Zero SRC Match Indicator -->
-            <TextView
-                android:id="@+id/tvMatchStatus"
+            <!-- 4. Target Aplikasi (Category Chips like Screen 3 in mockup) -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/label_zero_src"
-                android:textColor="@color/text_muted"
-                android:textSize="11sp"
+                android:background="@drawable/bg_glass_card"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TARGET APLIKASI BYPASS"
+                    android:textColor="@color/text_muted"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08"
+                    android:layout_marginBottom="10dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/chipApple"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="Apple Music"
+                        android:textColor="@color/accent_emerald"
+                        android:background="@drawable/chip_app_active"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginEnd="4dp" />
+
+                    <TextView
+                        android:id="@+id/chipTidal"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="TIDAL"
+                        android:textColor="@color/accent_emerald"
+                        android:background="@drawable/chip_app_active"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginEnd="4dp" />
+
+                    <TextView
+                        android:id="@+id/chipBitchord"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="Bitchord"
+                        android:textColor="@color/accent_emerald"
+                        android:background="@drawable/chip_app_active"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginEnd="4dp" />
+
+                    <TextView
+                        android:id="@+id/chipSpotify"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="Spotify"
+                        android:textColor="@color/text_secondary"
+                        android:background="@drawable/chip_app_inactive"
+                        android:textSize="11sp"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="🛡️ Video (YouTube/TikTok) otomatis memakai mixer 48k agar tidak patah-patah."
+                    android:textColor="@color/text_muted"
+                    android:textSize="10sp"
+                    android:layout_marginTop="10dp" />
+            </LinearLayout>
+
+            <!-- 5. Manual Clock Controller -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_glass_card"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PILIHAN SAMPLE RATE MANUAL"
+                    android:textColor="@color/text_muted"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08"
+                    android:layout_marginBottom="10dp" />
+
+                <!-- Row 1: 44.1k, 48k, 88.2k, 96k -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <Button
+                        android:id="@+id/btnRate44k"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:text="44.1k"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp"
+                        android:background="@drawable/btn_rate_glass"
+                        android:textAllCaps="false"
+                        android:layout_marginEnd="6dp" />
+
+                    <Button
+                        android:id="@+id/btnRate48k"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:text="48k"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp"
+                        android:background="@drawable/btn_rate_glass"
+                        android:textAllCaps="false"
+                        android:layout_marginEnd="6dp" />
+
+                    <Button
+                        android:id="@+id/btnRate88k"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:text="88.2k"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp"
+                        android:background="@drawable/btn_rate_glass"
+                        android:textAllCaps="false"
+                        android:layout_marginEnd="6dp" />
+
+                    <Button
+                        android:id="@+id/btnRate96k"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:text="96k"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp"
+                        android:background="@drawable/btn_rate_glass"
+                        android:textAllCaps="false" />
+                </LinearLayout>
+
+                <!-- Row 2: 176.4k, 192k, 384k, Reset -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnRate176k"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:text="176.4k"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp"
+                        android:background="@drawable/btn_rate_glass"
+                        android:textAllCaps="false"
+                        android:layout_marginEnd="6dp" />
+
+                    <Button
+                        android:id="@+id/btnRate192k"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:text="192k"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp"
+                        android:background="@drawable/btn_rate_glass"
+                        android:textAllCaps="false"
+                        android:layout_marginEnd="6dp" />
+
+                    <Button
+                        android:id="@+id/btnRate384k"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:text="384k"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp"
+                        android:background="@drawable/btn_rate_glass"
+                        android:textAllCaps="false"
+                        android:layout_marginEnd="6dp" />
+
+                    <Button
+                        android:id="@+id/btnRateReset"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:text="Reset"
+                        android:textColor="@color/accent_amber"
+                        android:textSize="12sp"
+                        android:background="@drawable/btn_rate_glass"
+                        android:textAllCaps="false" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:gravity="center"
+                android:text="Bypass HAL AudioFlinger • Non-destructive • Tanpa Modul Zip Magisk"
+                android:textColor="@color/text_muted"
+                android:textSize="10sp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- 6. Floating Bottom Navigation Dock (Like the bottom bar in mockup) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="62dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_bottom_dock"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp">
+
+        <!-- Left Dock Item: Live Monitor -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📊"
+                android:textSize="16sp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Monitor"
+                android:textColor="@color/accent_emerald"
+                android:textSize="10sp"
+                android:textStyle="bold"
                 android:layout_marginTop="2dp" />
-
         </LinearLayout>
 
-        <!-- 2. PER-APP MIXER BYPASS SELECTION -->
+        <!-- Center Highlighted Action Squircle: Bypass Engine Tweak -->
+        <RelativeLayout
+            android:id="@+id/dockCenterAction"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_center_action_squircle"
+            android:clickable="true"
+            android:focusable="true">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="⚡"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+        </RelativeLayout>
+
+        <!-- Right Dock Item: Video Safe Status -->
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_card_telemetry"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:layout_marginBottom="16dp">
-
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/title_per_app"
-                android:textColor="@color/text_primary"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.05"
-                android:layout_marginBottom="4dp" />
-
+                android:text="🛡️"
+                android:textSize="16sp" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/desc_per_app"
+                android:text="Safe Video"
                 android:textColor="@color/text_muted"
-                android:textSize="11sp"
-                android:lineSpacingExtra="2dp"
-                android:layout_marginBottom="12dp" />
-
-            <!-- App Row 1: Apple Music -->
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp">
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_toStartOf="@+id/switchAppApple"
-                    android:orientation="vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/app_apple_music"
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="com.apple.android.music • Hi-Res Lossless 24/192"
-                        android:textColor="@color/text_muted"
-                        android:textSize="11sp" />
-                </LinearLayout>
-                <Switch
-                    android:id="@+id/switchAppApple"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:checked="true" />
-            </RelativeLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/border_subtle" />
-
-            <!-- App Row 2: TIDAL -->
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp">
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_toStartOf="@+id/switchAppTidal"
-                    android:orientation="vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/app_tidal"
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="com.aspiro.tidal • Max Hi-Res FLAC 24/192"
-                        android:textColor="@color/text_muted"
-                        android:textSize="11sp" />
-                </LinearLayout>
-                <Switch
-                    android:id="@+id/switchAppTidal"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:checked="true" />
-            </RelativeLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/border_subtle" />
-
-            <!-- App Row 3: Bitchord -->
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp">
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_toStartOf="@+id/switchAppBitchord"
-                    android:orientation="vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/app_bitchord"
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="com.music.bitchord • Lossless Direct Audio"
-                        android:textColor="@color/text_muted"
-                        android:textSize="11sp" />
-                </LinearLayout>
-                <Switch
-                    android:id="@+id/switchAppBitchord"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:checked="true" />
-            </RelativeLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/border_subtle" />
-
-            <!-- App Row 4: Spotify -->
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp">
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_toStartOf="@+id/switchAppSpotify"
-                    android:orientation="vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/app_spotify"
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="com.spotify.music • Standard Stream (44.1k/48k)"
-                        android:textColor="@color/text_muted"
-                        android:textSize="11sp" />
-                </LinearLayout>
-                <Switch
-                    android:id="@+id/switchAppSpotify"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:checked="false" />
-            </RelativeLayout>
-
-            <!-- Video Protection Info Banner -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/app_video_warning"
-                android:textColor="@color/accent_amber"
-                android:background="@drawable/bg_tile_inner"
-                android:padding="10dp"
-                android:textSize="11sp"
-                android:layout_marginTop="8dp" />
-
-        </LinearLayout>
-
-        <!-- 3. ENGINE BYPASS MIXER SETTINGS -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_card_telemetry"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:layout_marginBottom="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/title_engine"
-                android:textColor="@color/text_primary"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.05"
-                android:layout_marginBottom="4dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/desc_engine"
-                android:textColor="@color/text_muted"
-                android:textSize="11sp"
-                android:lineSpacingExtra="2dp"
-                android:layout_marginBottom="12dp" />
-
-            <!-- Button Apply Engine Config -->
-            <Button
-                android:id="@+id/btnApplyEngine"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:text="@string/btn_apply_engine"
-                android:textColor="@color/text_primary"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:background="@drawable/btn_rate_active"
-                android:textAllCaps="false"
-                android:layout_marginBottom="14dp" />
-
-            <!-- Switch Auto Rate Alignment -->
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp">
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_toStartOf="@+id/switchAutoRate"
-                    android:layout_marginEnd="12dp"
-                    android:orientation="vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/switch_auto_rate"
-                        android:textColor="@color/text_primary"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/desc_auto_rate"
-                        android:textColor="@color/text_muted"
-                        android:textSize="11sp" />
-                </LinearLayout>
-                <Switch
-                    android:id="@+id/switchAutoRate"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:checked="true" />
-            </RelativeLayout>
-
-            <!-- Switch Safe Pause Protection -->
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_toStartOf="@+id/switchSafePause"
-                    android:layout_marginEnd="12dp"
-                    android:orientation="vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/switch_safe_pause"
-                        android:textColor="@color/text_primary"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/desc_safe_pause"
-                        android:textColor="@color/text_muted"
-                        android:textSize="11sp" />
-                </LinearLayout>
-                <Switch
-                    android:id="@+id/switchSafePause"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:checked="true" />
-            </RelativeLayout>
-
-        </LinearLayout>
-
-        <!-- 4. MANUAL SAMPLE RATE CONTROLLER -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_card_telemetry"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:layout_marginBottom="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/title_manual_rate"
-                android:textColor="@color/text_primary"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.05"
-                android:layout_marginBottom="4dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/desc_manual_rate"
-                android:textColor="@color/text_muted"
-                android:textSize="11sp"
-                android:layout_marginBottom="12dp" />
-
-            <!-- Row 1: 44.1k, 48k, 88.2k, 96k -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="8dp">
-
-                <Button
-                    android:id="@+id/btnRate44k"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:text="44.1k"
-                    android:textColor="@color/text_primary"
-                    android:textSize="12sp"
-                    android:background="@drawable/btn_rate"
-                    android:textAllCaps="false"
-                    android:layout_marginEnd="6dp" />
-
-                <Button
-                    android:id="@+id/btnRate48k"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:text="48k"
-                    android:textColor="@color/text_primary"
-                    android:textSize="12sp"
-                    android:background="@drawable/btn_rate"
-                    android:textAllCaps="false"
-                    android:layout_marginEnd="6dp" />
-
-                <Button
-                    android:id="@+id/btnRate88k"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:text="88.2k"
-                    android:textColor="@color/text_primary"
-                    android:textSize="12sp"
-                    android:background="@drawable/btn_rate"
-                    android:textAllCaps="false"
-                    android:layout_marginEnd="6dp" />
-
-                <Button
-                    android:id="@+id/btnRate96k"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:text="96k"
-                    android:textColor="@color/text_primary"
-                    android:textSize="12sp"
-                    android:background="@drawable/btn_rate"
-                    android:textAllCaps="false" />
-            </LinearLayout>
-
-            <!-- Row 2: 176.4k, 192k, 384k, Reset -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/btnRate176k"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:text="176.4k"
-                    android:textColor="@color/text_primary"
-                    android:textSize="12sp"
-                    android:background="@drawable/btn_rate"
-                    android:textAllCaps="false"
-                    android:layout_marginEnd="6dp" />
-
-                <Button
-                    android:id="@+id/btnRate192k"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:text="192k"
-                    android:textColor="@color/text_primary"
-                    android:textSize="12sp"
-                    android:background="@drawable/btn_rate"
-                    android:textAllCaps="false"
-                    android:layout_marginEnd="6dp" />
-
-                <Button
-                    android:id="@+id/btnRate384k"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:text="384k"
-                    android:textColor="@color/text_primary"
-                    android:textSize="12sp"
-                    android:background="@drawable/btn_rate"
-                    android:textAllCaps="false"
-                    android:layout_marginEnd="6dp" />
-
-                <Button
-                    android:id="@+id/btnRateReset"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:text="@string/rate_reset"
-                    android:textColor="@color/accent_amber"
-                    android:textSize="11sp"
-                    android:background="@drawable/btn_rate"
-                    android:textAllCaps="false" />
-            </LinearLayout>
-
-        </LinearLayout>
-
-        <!-- 5. MODULE MANAGEMENT & DIAGNOSTIC CARD -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_card_telemetry"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/title_module_manage"
-                android:textColor="@color/text_primary"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.05"
-                android:layout_marginBottom="4dp" />
-
-            <TextView
-                android:id="@+id/tvModuleStatus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/desc_module_uninstall"
-                android:textColor="@color/text_muted"
-                android:textSize="11sp"
-                android:lineSpacingExtra="2dp"
-                android:layout_marginBottom="12dp" />
-
-            <Button
-                android:id="@+id/btnUninstallModule"
-                android:layout_width="match_parent"
-                android:layout_height="42dp"
-                android:text="@string/btn_uninstall_module"
-                android:textColor="@color/btn_text_danger"
-                android:textSize="12sp"
-                android:background="@drawable/btn_rate"
-                android:textAllCaps="false" />
+                android:textSize="10sp"
+                android:layout_marginTop="2dp" />
         </LinearLayout>
 
     </LinearLayout>
-</ScrollView>
+
+</RelativeLayout>

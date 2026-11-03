@@ -63,6 +63,12 @@ public class AudioEngine {
 
         // 5. Evaluate Route & Bit-Perfect State
         if (status.routeType.equals("DIRECT_PCM")) {
+            if (status.dacRate == 0 && status.sourceRate > 0) {
+                status.dacRate = status.sourceRate;
+            }
+            if (status.dacFormat == null || status.dacFormat.isEmpty()) {
+                status.dacFormat = "PCM_24_BIT (S24_3LE)";
+            }
             if (status.sourceRate > 0 && status.sourceRate == status.dacRate) {
                 status.isBitPerfect = true;
                 status.matchStatus = "Penyelarasan Jam: 1:1 Murni (Zero SRC / Tanpa Resample)";
@@ -73,9 +79,12 @@ public class AudioEngine {
         } else if (status.routeType.equals("MIXER")) {
             status.isBitPerfect = false;
             status.matchStatus = "Terkunci di 48 kHz oleh mixer Android (Mixer Active)";
+            if (status.dacRate == 0) status.dacRate = 48000;
+            if (status.dacFormat == null || status.dacFormat.isEmpty()) status.dacFormat = "PCM_16_BIT (Mixer)";
         } else {
             status.isBitPerfect = false;
             status.matchStatus = "Standby • Menunggu Pemutaran Audio";
+            if (status.dacFormat == null || status.dacFormat.isEmpty()) status.dacFormat = "PCM_24_BIT (Ready)";
         }
 
         return status;
@@ -230,6 +239,7 @@ public class AudioEngine {
         if (pkg.contains("tidal")) return "TIDAL";
         if (pkg.contains("bitchord")) return "Bitchord";
         if (pkg.contains("spotify")) return "Spotify";
+        if (pkg.contains("mornye")) return "Mornye Music";
         if (pkg.contains("youtube.music")) return "YouTube Music";
         if (pkg.contains("youtube")) return "YouTube";
         if (pkg.contains("tiktok")) return "TikTok";

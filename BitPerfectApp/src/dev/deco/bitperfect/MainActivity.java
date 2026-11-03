@@ -9,27 +9,28 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-    private TextView tvEngineBadge;
-    private TextView tvRouteBadge;
+    private TextView btnEngineStatus;
+    private AudioPipelineGaugeView pipelineGaugeView;
+    private TextView btnToggleAutoSync;
+
     private TextView tvActiveApp;
+    private TextView tvSourceDetail;
     private TextView tvSourceRate;
+    private TextView tvSourceBitDepth;
+
     private TextView tvDacName;
+    private TextView tvDacFormat;
     private TextView tvDacRate;
-    private TextView tvMatchStatus;
+    private TextView tvMatchBadge;
 
-    private Switch switchAppApple;
-    private Switch switchAppTidal;
-    private Switch switchAppBitchord;
-    private Switch switchAppSpotify;
-
-    private Button btnApplyEngine;
-    private Switch switchAutoRate;
-    private Switch switchSafePause;
+    private TextView chipApple;
+    private TextView chipTidal;
+    private TextView chipBitchord;
+    private TextView chipSpotify;
 
     private Button btnRate44k;
     private Button btnRate48k;
@@ -40,12 +41,10 @@ public class MainActivity extends Activity {
     private Button btnRate384k;
     private Button btnRateReset;
 
-    private TextView tvModuleStatus;
-    private Button btnUninstallModule;
+    private View dockCenterAction;
 
     private Button[] mRateButtons;
     private boolean mAutoRate = true;
-    private boolean mSafePause = true;
 
     private final BroadcastReceiver mStatusReceiver = new BroadcastReceiver() {
         @Override
@@ -72,27 +71,28 @@ public class MainActivity extends Activity {
 
         initViews();
         setupListeners();
-        checkModuleStatus();
         startMonitorService();
     }
 
     private void initViews() {
-        tvEngineBadge = findViewById(R.id.tvEngineBadge);
-        tvRouteBadge = findViewById(R.id.tvRouteBadge);
+        btnEngineStatus = findViewById(R.id.btnEngineStatus);
+        pipelineGaugeView = findViewById(R.id.pipelineGaugeView);
+        btnToggleAutoSync = findViewById(R.id.btnToggleAutoSync);
+
         tvActiveApp = findViewById(R.id.tvActiveApp);
+        tvSourceDetail = findViewById(R.id.tvSourceDetail);
         tvSourceRate = findViewById(R.id.tvSourceRate);
+        tvSourceBitDepth = findViewById(R.id.tvSourceBitDepth);
+
         tvDacName = findViewById(R.id.tvDacName);
+        tvDacFormat = findViewById(R.id.tvDacFormat);
         tvDacRate = findViewById(R.id.tvDacRate);
-        tvMatchStatus = findViewById(R.id.tvMatchStatus);
+        tvMatchBadge = findViewById(R.id.tvMatchBadge);
 
-        switchAppApple = findViewById(R.id.switchAppApple);
-        switchAppTidal = findViewById(R.id.switchAppTidal);
-        switchAppBitchord = findViewById(R.id.switchAppBitchord);
-        switchAppSpotify = findViewById(R.id.switchAppSpotify);
-
-        btnApplyEngine = findViewById(R.id.btnApplyEngine);
-        switchAutoRate = findViewById(R.id.switchAutoRate);
-        switchSafePause = findViewById(R.id.switchSafePause);
+        chipApple = findViewById(R.id.chipApple);
+        chipTidal = findViewById(R.id.chipTidal);
+        chipBitchord = findViewById(R.id.chipBitchord);
+        chipSpotify = findViewById(R.id.chipSpotify);
 
         btnRate44k = findViewById(R.id.btnRate44k);
         btnRate48k = findViewById(R.id.btnRate48k);
@@ -103,60 +103,41 @@ public class MainActivity extends Activity {
         btnRate384k = findViewById(R.id.btnRate384k);
         btnRateReset = findViewById(R.id.btnRateReset);
 
-        tvModuleStatus = findViewById(R.id.tvModuleStatus);
-        btnUninstallModule = findViewById(R.id.btnUninstallModule);
+        dockCenterAction = findViewById(R.id.dockCenterAction);
 
         mRateButtons = new Button[]{
                 btnRate44k, btnRate48k, btnRate88k, btnRate96k,
                 btnRate176k, btnRate192k, btnRate384k, btnRateReset
         };
 
-        // Load app bypass saved states
-        switchAppApple.setChecked(AudioEngine.isAppBypassed(this, AudioEngine.PKG_APPLE_MUSIC));
-        switchAppTidal.setChecked(AudioEngine.isAppBypassed(this, AudioEngine.PKG_TIDAL));
-        switchAppBitchord.setChecked(AudioEngine.isAppBypassed(this, AudioEngine.PKG_BITCHORD));
-        switchAppSpotify.setChecked(AudioEngine.isAppBypassed(this, AudioEngine.PKG_SPOTIFY));
+        refreshAppChips();
+        updateAutoSyncPill();
     }
 
     private void setupListeners() {
-        switchAppApple.setOnCheckedChangeListener((v, isChecked) -> {
-            AudioEngine.setAppBypassed(this, AudioEngine.PKG_APPLE_MUSIC, isChecked);
-            Toast.makeText(this, "Apple Music: " + (isChecked ? "Bypass Mixer Aktif" : "Audio Standar"), Toast.LENGTH_SHORT).show();
-        });
-
-        switchAppTidal.setOnCheckedChangeListener((v, isChecked) -> {
-            AudioEngine.setAppBypassed(this, AudioEngine.PKG_TIDAL, isChecked);
-            Toast.makeText(this, "TIDAL: " + (isChecked ? "Bypass Mixer Aktif" : "Audio Standar"), Toast.LENGTH_SHORT).show();
-        });
-
-        switchAppBitchord.setOnCheckedChangeListener((v, isChecked) -> {
-            AudioEngine.setAppBypassed(this, AudioEngine.PKG_BITCHORD, isChecked);
-            Toast.makeText(this, "Bitchord: " + (isChecked ? "Bypass Mixer Aktif" : "Audio Standar"), Toast.LENGTH_SHORT).show();
-        });
-
-        switchAppSpotify.setOnCheckedChangeListener((v, isChecked) -> {
-            AudioEngine.setAppBypassed(this, AudioEngine.PKG_SPOTIFY, isChecked);
-            Toast.makeText(this, "Spotify: " + (isChecked ? "Bypass Mixer Aktif" : "Audio Standar"), Toast.LENGTH_SHORT).show();
-        });
-
-        btnApplyEngine.setOnClickListener(v -> {
+        View.OnClickListener applyEngineListener = v -> {
             new Thread(() -> {
                 boolean ok = AudioEngine.applyEngineTweaks(MainActivity.this);
                 runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, ok ? "Konfigurasi Bypass Mixer Berhasil Diterapkan!" : "Gagal menerapkan tweak (Periksa Root)", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, ok ? "⚡ Engine Bypass Mixer Aktif & Diterapkan!" : "Gagal menerapkan tweak (Periksa izin Root)", Toast.LENGTH_SHORT).show();
                 });
             }).start();
+        };
+
+        btnEngineStatus.setOnClickListener(applyEngineListener);
+        if (dockCenterAction != null) dockCenterAction.setOnClickListener(applyEngineListener);
+
+        btnToggleAutoSync.setOnClickListener(v -> {
+            mAutoRate = !mAutoRate;
+            updateAutoSyncPill();
+            restartMonitorService();
+            Toast.makeText(MainActivity.this, "Auto-Sync Clock: " + (mAutoRate ? "Aktif (Otomatis Ikuti Track)" : "Nonaktif (Manual Clock)"), Toast.LENGTH_SHORT).show();
         });
 
-        switchAutoRate.setOnCheckedChangeListener((v, isChecked) -> {
-            mAutoRate = isChecked;
-            restartMonitorService();
-        });
-
-        switchSafePause.setOnCheckedChangeListener((v, isChecked) -> {
-            mSafePause = isChecked;
-            restartMonitorService();
-        });
+        chipApple.setOnClickListener(v -> toggleAppChip(AudioEngine.PKG_APPLE_MUSIC, "Apple Music"));
+        chipTidal.setOnClickListener(v -> toggleAppChip(AudioEngine.PKG_TIDAL, "TIDAL"));
+        chipBitchord.setOnClickListener(v -> toggleAppChip(AudioEngine.PKG_BITCHORD, "Bitchord"));
+        chipSpotify.setOnClickListener(v -> toggleAppChip(AudioEngine.PKG_SPOTIFY, "Spotify"));
 
         btnRate44k.setOnClickListener(v -> selectRate(44100, btnRate44k));
         btnRate48k.setOnClickListener(v -> selectRate(48000, btnRate48k));
@@ -166,82 +147,126 @@ public class MainActivity extends Activity {
         btnRate192k.setOnClickListener(v -> selectRate(192000, btnRate192k));
         btnRate384k.setOnClickListener(v -> selectRate(384000, btnRate384k));
         btnRateReset.setOnClickListener(v -> selectRate(0, btnRateReset));
-
-        btnUninstallModule.setOnClickListener(v -> {
-            new Thread(() -> {
-                boolean uninstalled = AudioEngine.uninstallMagiskModule();
-                runOnUiThread(() -> {
-                    checkModuleStatus();
-                    Toast.makeText(MainActivity.this, uninstalled ? "Modul Magisk berhasil dinonaktifkan/dihapus!" : "Modul sudah tidak terpasang", Toast.LENGTH_LONG).show();
-                });
-            }).start();
-        });
     }
 
-    private void checkModuleStatus() {
-        boolean installed = AudioEngine.isModuleInstalled();
-        if (installed) {
-            tvModuleStatus.setText("Modul lama 'disable_resample_48k' terdeteksi. Seluruh fitur sudah diambil alih oleh aplikasi ini, Anda dapat mencopotnya sekarang.");
-            btnUninstallModule.setVisibility(View.VISIBLE);
-            btnUninstallModule.setText("Copot Modul Magisk Sekarang");
+    private void updateAutoSyncPill() {
+        if (mAutoRate) {
+            btnToggleAutoSync.setText("⚡ Auto-Sync Clock: AKTIF");
+            btnToggleAutoSync.setTextColor(getColor(R.color.accent_emerald));
+            btnToggleAutoSync.setBackgroundResource(R.drawable.chip_app_active);
         } else {
-            tvModuleStatus.setText("Bersih! Tidak ada modul Magisk yang bentrok. Semua bypass mixer dikendalikan secara fleksibel oleh aplikasi.");
-            btnUninstallModule.setVisibility(View.GONE);
+            btnToggleAutoSync.setText("⏸️ Auto-Sync Clock: NONAKTIF");
+            btnToggleAutoSync.setTextColor(getColor(R.color.text_secondary));
+            btnToggleAutoSync.setBackgroundResource(R.drawable.chip_app_inactive);
+        }
+    }
+
+    private void toggleAppChip(String pkg, String appName) {
+        boolean current = AudioEngine.isAppBypassed(this, pkg);
+        AudioEngine.setAppBypassed(this, pkg, !current);
+        refreshAppChips();
+        Toast.makeText(this, appName + ": " + (!current ? "Bypass Mixer Aktif" : "Audio Standar (Mixer)"), Toast.LENGTH_SHORT).show();
+    }
+
+    private void refreshAppChips() {
+        setChipState(chipApple, AudioEngine.PKG_APPLE_MUSIC, "Apple Music");
+        setChipState(chipTidal, AudioEngine.PKG_TIDAL, "TIDAL");
+        setChipState(chipBitchord, AudioEngine.PKG_BITCHORD, "Bitchord");
+        setChipState(chipSpotify, AudioEngine.PKG_SPOTIFY, "Spotify");
+    }
+
+    private void setChipState(TextView chip, String pkg, String label) {
+        boolean active = AudioEngine.isAppBypassed(this, pkg);
+        if (active) {
+            chip.setText("✓ " + label);
+            chip.setTextColor(getColor(R.color.accent_emerald));
+            chip.setBackgroundResource(R.drawable.chip_app_active);
+        } else {
+            chip.setText(label);
+            chip.setTextColor(getColor(R.color.text_secondary));
+            chip.setBackgroundResource(R.drawable.chip_app_inactive);
         }
     }
 
     private void selectRate(int rateHz, Button clickedBtn) {
         for (Button b : mRateButtons) {
-            b.setBackgroundResource(R.drawable.btn_rate);
+            b.setBackgroundResource(R.drawable.btn_rate_glass);
             b.setTextColor(getColor(R.color.text_primary));
         }
-        clickedBtn.setBackgroundResource(R.drawable.btn_rate_active);
-        clickedBtn.setTextColor(getColor(R.color.text_primary));
+        clickedBtn.setBackgroundResource(R.drawable.btn_rate_glass_active);
+        clickedBtn.setTextColor(getColor(R.color.accent_emerald));
 
         new Thread(() -> {
-            AudioEngine.setDacRate(MainActivity.this, rateHz, false);
+            AudioEngine.setDacRate(MainActivity.this, rateHz, true);
             runOnUiThread(() -> {
-                String text = rateHz == 0 ? "Rate DAC direset ke 48 kHz (Default)" : "Clock DAC diubah ke " + formatRate(rateHz);
+                String text = rateHz == 0 ? "DAC direset ke 48 kHz (Default Mixer)" : "Clock DAC diubah ke " + formatRate(rateHz);
                 Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show();
             });
         }).start();
     }
 
     private void updateTelemetry(int sourceRate, String sourceBitDepth, int dacRate, String dacFormat, String dacName, String routeType, boolean isBitPerfect, String activeApp, boolean isAppBypassed, String matchStatus) {
-        if (activeApp != null && !activeApp.isEmpty()) tvActiveApp.setText(activeApp);
-        if (dacName != null && !dacName.isEmpty()) tvDacName.setText(dacName);
+        // 1. Update the big Hero Arch Gauge View!
+        if (pipelineGaugeView != null) {
+            int displayRate = (dacRate > 0) ? dacRate : sourceRate;
+            pipelineGaugeView.updateStatus(displayRate, sourceBitDepth, isBitPerfect, routeType, activeApp, dacName);
+        }
 
-        String trackText = formatRate(sourceRate);
+        // 2. Update Source Stream Card
+        if (activeApp != null && !activeApp.isEmpty()) {
+            tvActiveApp.setText(activeApp);
+        }
+        tvSourceRate.setText(formatRate(sourceRate));
         if (sourceBitDepth != null && !sourceBitDepth.isEmpty() && sourceRate > 0) {
-            trackText += " • " + sourceBitDepth;
+            tvSourceBitDepth.setText(sourceBitDepth + " PCM");
+        } else {
+            tvSourceBitDepth.setText("PCM Stream");
         }
-        tvSourceRate.setText(trackText);
 
-        String dacText = formatRate(dacRate);
+        // 3. Update Hardware DAC Card
+        if (dacName != null && !dacName.isEmpty()) {
+            tvDacName.setText(dacName);
+        }
+        tvDacRate.setText(formatRate(dacRate));
         if (dacFormat != null && !dacFormat.isEmpty()) {
-            dacText += " • " + dacFormat;
-        }
-        tvDacRate.setText(dacText);
-
-        if (matchStatus != null && !matchStatus.isEmpty()) {
-            tvMatchStatus.setText(matchStatus);
+            tvDacFormat.setText(dacFormat);
         }
 
         if (isBitPerfect) {
-            tvRouteBadge.setText(R.string.status_direct_bitperfect);
-            tvRouteBadge.setBackgroundResource(R.drawable.badge_route_direct);
-            tvRouteBadge.setTextColor(getColor(R.color.accent_emerald));
-            tvMatchStatus.setTextColor(getColor(R.color.text_emerald));
+            tvMatchBadge.setText("Zero SRC 1:1");
+            tvMatchBadge.setTextColor(getColor(R.color.accent_emerald));
+            tvDacRate.setTextColor(getColor(R.color.accent_emerald));
         } else if ("MIXER".equals(routeType)) {
-            tvRouteBadge.setText(R.string.status_mixer_active);
-            tvRouteBadge.setBackgroundResource(R.drawable.badge_route_mixer);
-            tvRouteBadge.setTextColor(getColor(R.color.accent_amber));
-            tvMatchStatus.setTextColor(getColor(R.color.text_amber));
+            tvMatchBadge.setText("Resampled 48k");
+            tvMatchBadge.setTextColor(getColor(R.color.accent_amber));
+            tvDacRate.setTextColor(getColor(R.color.accent_amber));
         } else {
-            tvRouteBadge.setText(R.string.status_standby);
-            tvRouteBadge.setBackgroundResource(R.drawable.badge_route_standby);
-            tvRouteBadge.setTextColor(getColor(R.color.text_muted));
-            tvMatchStatus.setTextColor(getColor(R.color.text_muted));
+            tvMatchBadge.setText("Standby");
+            tvMatchBadge.setTextColor(getColor(R.color.text_muted));
+            tvDacRate.setTextColor(getColor(R.color.text_muted));
+        }
+
+        highlightRateButton(dacRate);
+    }
+
+    private void highlightRateButton(int rateHz) {
+        if (rateHz <= 0) return;
+        Button target = null;
+        if (rateHz == 44100) target = btnRate44k;
+        else if (rateHz == 48000) target = btnRate48k;
+        else if (rateHz == 88200) target = btnRate88k;
+        else if (rateHz == 96000) target = btnRate96k;
+        else if (rateHz == 176400) target = btnRate176k;
+        else if (rateHz == 192000) target = btnRate192k;
+        else if (rateHz == 384000) target = btnRate384k;
+
+        if (target != null) {
+            for (Button b : mRateButtons) {
+                b.setBackgroundResource(R.drawable.btn_rate_glass);
+                b.setTextColor(getColor(R.color.text_primary));
+            }
+            target.setBackgroundResource(R.drawable.btn_rate_glass_active);
+            target.setTextColor(getColor(R.color.accent_emerald));
         }
     }
 
@@ -257,7 +282,7 @@ public class MainActivity extends Activity {
     private void startMonitorService() {
         Intent intent = new Intent(this, BitPerfectService.class);
         intent.putExtra("autoSwitch", mAutoRate);
-        intent.putExtra("safePause", mSafePause);
+        intent.putExtra("safePause", true);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent);
         } else {

@@ -1,50 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Bit-Perfect Suite</string>
-    <string name="app_subtitle">Hardware DAC &amp; Mixer Controller</string>
+    <string name="app_name">BitPerfect Monitor</string>
+    <string name="app_subtitle">Hardware DAC &amp; Zero-SRC Engine</string>
     
     <!-- Status Labels -->
-    <string name="status_direct_bitperfect">DIRECT PCM (1:1 BIT-PERFECT)</string>
-    <string name="status_mixer_active">MIXER AKTIF (RESAMPLED 48 kHz)</string>
-    <string name="status_offload">COMPRESSED OFFLOAD (ADSP)</string>
-    <string name="status_standby">STANDBY (TIDAK ADA AUDIO)</string>
+    <string name="status_direct_bitperfect">● BIT-PERFECT 1:1</string>
+    <string name="status_mixer_active">● MIXER AKTIF (48 kHz RESAMPLE)</string>
+    <string name="status_offload">● OFFLOAD ADSP</string>
+    <string name="status_standby">○ STANDBY (MENUNGGU AUDIO)</string>
     
-    <string name="label_source_stream">STREAM SUMBER</string>
-    <string name="label_dac_endpoint">ENDPOINT DAC</string>
-    <string name="label_app_active">Aplikasi Aktif</string>
-    <string name="label_track_res">Resolusi Lagu</string>
-    <string name="label_dac_device">Perangkat DAC</string>
-    <string name="label_dac_clock">Clock Hardware</string>
-    <string name="label_dac_format">Format &amp; Altset</string>
-    <string name="label_zero_src">Penyelarasan Jam: 1:1 Tanpa Resampling (Zero SRC)</string>
+    <string name="label_source_stream">Rate sumber</string>
+    <string name="label_dac_endpoint">Rate ke DAC</string>
+    <string name="label_format">Format</string>
+    <string name="label_dac_device">DAC</string>
+    <string name="label_zero_src">Penyelarasan Jam: 1:1 Murni (Zero SRC)</string>
     <string name="label_mixer_warning">Terkunci di 48 kHz oleh mixer Android</string>
     
-    <!-- Engine Tweak Section -->
-    <string name="title_engine">ENGINE BYPASS MIXER</string>
-    <string name="desc_engine">Menerapkan tweak audio HAL langsung dari aplikasi: membuka sampling rate murni hingga 384 kHz, mengaktifkan alokasi DSP 24-bit, dan menonaktifkan burst mode untuk mencegah lagu Hi-Res tersendat.</string>
-    <string name="btn_apply_engine">Terapkan Konfigurasi Engine</string>
-    <string name="switch_auto_rate">Penyelarasan Clock Otomatis</string>
-    <string name="desc_auto_rate">Menyesuaikan frekuensi DAC dengan lagu saat aplikasi musik terpilih memutar audio.</string>
-    <string name="switch_safe_pause">Jeda Re-Clocking (3.5 Detik)</string>
-    <string name="desc_safe_pause">Menjeda pemutaran sebentar saat sample rate berubah agar audio tidak bocor ke speaker HP saat DAC sinkronisasi ulang.</string>
+    <!-- Controls -->
+    <string name="switch_auto_rate">Ikuti rate sumber otomatis</string>
+    <string name="desc_auto_rate">Jeda cerdas saat ganti track agar clock DAC sinkron murni</string>
+    <string name="title_target_apps">TARGET APLIKASI BYPASS</string>
+    <string name="hint_video_protect">🛡️ Video (YouTube/TikTok) otomatis memakai mixer 48k agar audio/video tidak patah-patah.</string>
     
-    <!-- Per-App Selection Section -->
-    <string name="title_per_app">APLIKASI TERPILIH (PER-APP BYPASS)</string>
-    <string name="desc_per_app">Pilih aplikasi yang diizinkan mem-bypass mixer. Aplikasi di luar daftar ini (seperti YouTube, TikTok, Netflix) tetap menggunakan mixer standar 48 kHz agar video tidak patah-patah.</string>
-    <string name="app_apple_music">Apple Music</string>
-    <string name="app_tidal">TIDAL</string>
-    <string name="app_bitchord">Bitchord</string>
-    <string name="app_spotify">Spotify</string>
-    <string name="app_yt_music">YouTube Music</string>
-    <string name="app_video_warning">Aplikasi Video: Tetap di mixer 48 kHz untuk menjaga sinkronisasi frame A/V.</string>
+    <string name="title_manual_rate">PILIHAN SAMPLE RATE MANUAL</string>
+    <string name="rate_reset">Reset</string>
     
-    <!-- Manual Controller Section -->
-    <string name="title_manual_rate">KONTROL MANUAL FREKUENSI DAC</string>
-    <string name="desc_manual_rate">Atur frekuensi mixer / hardware DAC secara manual jika diperlukan.</string>
-    <string name="rate_reset">Reset (48k)</string>
-    
-    <!-- Module Management Section -->
-    <string name="title_module_manage">STATUS MODUL MAGISK / KSU</string>
-    <string name="desc_module_uninstall">Seluruh fungsionalitas modul kini dikontrol langsung oleh aplikasi ini via Root / Audio HAL. Anda dapat mencopot modul Magisk/KSU lama dengan aman tanpa kehilangan fitur bit-perfect.</string>
-    <string name="btn_uninstall_module">Nonaktifkan Modul Magisk Sekarang</string>
+    <string name="btn_engine_active">⚡ BYPASS ENGINE</string>
+    <string name="btn_engine_apply">⚡ Terapkan Bypass</string>
+    <string name="btn_uninstall_module">Copot Modul Magisk</string>
+    <string name="footnote_text">Bypass HAL AudioFlinger • Non-destructive • Tanpa Modul Zip Magisk</string>
 </resources>
