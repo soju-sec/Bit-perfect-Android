@@ -99,10 +99,11 @@ public class MainActivity extends Activity {
             String routeType = intent.getStringExtra("routeType");
             boolean isBitPerfect = intent.getBooleanExtra("isBitPerfect", false);
             String activeApp = intent.getStringExtra("activeApp");
+            String trackInfo = intent.getStringExtra("trackInfo");
             boolean isAppBypassed = intent.getBooleanExtra("isAppBypassed", false);
             String matchStatus = intent.getStringExtra("matchStatus");
 
-            updateTelemetry(isDacConnected, sourceRate, sourceBitDepth, dacRate, dacFormat, dacName, routeType, isBitPerfect, activeApp, isAppBypassed, matchStatus);
+            updateTelemetry(isDacConnected, sourceRate, sourceBitDepth, dacRate, dacFormat, dacName, routeType, isBitPerfect, activeApp, trackInfo, isAppBypassed, matchStatus);
         }
     };
 
@@ -114,6 +115,7 @@ public class MainActivity extends Activity {
         initViews();
         setupNavigation();
         setupListeners();
+        AudioEngine.requestRootPermissions(this);
         startMonitorService();
         loadAndRenderInstalledApps();
     }
@@ -194,7 +196,7 @@ public class MainActivity extends Activity {
         highlightBitDepthButton(mSelectedBitDepth);
 
         updateAutoSyncPill();
-        updateTelemetry(false, 0, "", 0, "--", "Tidak Ada DAC USB", "DISCONNECTED", false, "Tidak Ada Pemutaran", false, "DAC Terputus");
+        updateTelemetry(false, 0, "", 0, "--", "Tidak Ada DAC USB", "DISCONNECTED", false, "Tidak Ada Pemutaran", "", false, "DAC Terputus");
     }
 
     private void setupNavigation() {
@@ -433,7 +435,7 @@ public class MainActivity extends Activity {
         }).start();
     }
 
-    private void updateTelemetry(boolean isDacConnected, int sourceRate, String sourceBitDepth, int dacRate, String dacFormat, String dacName, String routeType, boolean isBitPerfect, String activeApp, boolean isAppBypassed, String matchStatus) {
+    private void updateTelemetry(boolean isDacConnected, int sourceRate, String sourceBitDepth, int dacRate, String dacFormat, String dacName, String routeType, boolean isBitPerfect, String activeApp, String trackInfo, boolean isAppBypassed, String matchStatus) {
         // 1. Update the big Hero Arch Gauge View!
         if (pipelineGaugeView != null) {
             int displayRate = (dacRate > 0) ? dacRate : sourceRate;
@@ -446,6 +448,15 @@ public class MainActivity extends Activity {
         } else {
             tvActiveApp.setText("Tidak Ada Pemutaran");
         }
+
+        if (trackInfo != null && !trackInfo.isEmpty()) {
+            tvSourceDetail.setText(trackInfo);
+        } else if (sourceRate > 0) {
+            tvSourceDetail.setText("Sedang Memutar Audio");
+        } else {
+            tvSourceDetail.setText("Audio Idle");
+        }
+
         tvSourceRate.setText(formatRate(sourceRate));
         if (sourceBitDepth != null && !sourceBitDepth.isEmpty() && sourceRate > 0) {
             tvSourceBitDepth.setText(sourceBitDepth + " PCM");
@@ -463,7 +474,8 @@ public class MainActivity extends Activity {
                 tvMatchBadge.setTextColor(getColor(R.color.accent_coral));
                 tvDacRate.setTextColor(getColor(R.color.accent_coral));
             } else if ("MIXER".equals(routeType)) {
-                tvMatchBadge.setText("Resampled 48k");
+                int displayK = dacRate > 0 ? (dacRate / 1000) : 48;
+                tvMatchBadge.setText("Resampled " + displayK + "k");
                 tvMatchBadge.setTextColor(getColor(R.color.accent_amber));
                 tvDacRate.setTextColor(getColor(R.color.accent_amber));
             } else {

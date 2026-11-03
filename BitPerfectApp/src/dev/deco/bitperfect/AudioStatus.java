@@ -11,6 +11,7 @@ public class AudioStatus {
     public boolean isBitPerfect = false;
     public String activeApp = "None";
     public String activePkg = "";
+    public String trackInfo = "";
     public String routeType = "DISCONNECTED";
     public boolean isAppBypassed = false;
     public boolean isMixerBypassed = false;

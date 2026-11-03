@@ -42,6 +42,7 @@ public class BitPerfectService extends Service {
             intent.putExtra("isBitPerfect", status.isBitPerfect);
             intent.putExtra("activeApp", status.activeApp);
             intent.putExtra("activePkg", status.activePkg);
+            intent.putExtra("trackInfo", status.trackInfo);
             intent.putExtra("isAppBypassed", status.isAppBypassed);
             intent.putExtra("matchStatus", status.matchStatus);
             sendBroadcast(intent);
@@ -52,7 +53,7 @@ public class BitPerfectService extends Service {
                     mLastSourceRate = status.sourceRate;
                     Log.i(TAG, "Auto-aligning DAC Clock for " + status.activeApp + ": " + status.sourceRate + " Hz");
                     new Thread(() -> {
-                        AudioEngine.setDacRate(BitPerfectService.this, status.sourceRate, mSafePause);
+                        AudioEngine.setDacRate(BitPerfectService.this, status.sourceRate, false);
                     }).start();
                 }
             }

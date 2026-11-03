@@ -129,12 +129,12 @@ public class AudioPipelineGaugeView extends View {
             subtitleText = "AUDIO PIPELINE LIVE";
             statusText = "● 1:1 DIRECT BIT-PERFECT (ZERO SRC)";
         } else if ("MIXER".equals(mRouteType)) {
-            // ANDROID MIXER 48k
+            // ANDROID MIXER
             activeSegments = 4;
             activeColor = AMBER_MIXER;
             topIcon = "🔊";
             subtitleText = "MIXER ANDROID AKTIF";
-            statusText = "● 48 kHz RESAMPLE (MIXER)";
+            statusText = "● " + (mSampleRate > 0 ? (mSampleRate / 1000) : 48) + " kHz RESAMPLE (MIXER)";
         } else {
             // SPEAKER INTERNAL
             activeSegments = 2;
