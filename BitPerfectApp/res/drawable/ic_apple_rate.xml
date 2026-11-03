@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp"
+    android:height="22dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Row 1: Line at y=6 with knob at x=8 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M4,5h16c0.55,0 1,0.45 1,1s-0.45,1 -1,1H4C3.45,7 3,6.55 3,6s0.45,-1 1,-1z"/>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M8,3.5c1.38,0 2.5,1.12 2.5,2.5s-1.12,2.5 -2.5,2.5s-2.5,-1.12 -2.5,-2.5s1.12,-2.5 2.5,-2.5z"/>
+
+    <!-- Row 2: Line at y=12 with knob at x=16 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M4,11h16c0.55,0 1,0.45 1,1s-0.45,1 -1,1H4c-0.55,0 -1,-0.45 -1,-1s0.45,-1 1,-1z"/>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M16,9.5c1.38,0 2.5,1.12 2.5,2.5s-1.12,2.5 -2.5,2.5s-2.5,-1.12 -2.5,-2.5s1.12,-2.5 2.5,-2.5z"/>
+
+    <!-- Row 3: Line at y=18 with knob at x=10 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M4,17h16c0.55,0 1,0.45 1,1s-0.45,1 -1,1H4c-0.55,0 -1,-0.45 -1,-1s0.45,-1 1,-1z"/>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M10,15.5c1.38,0 2.5,1.12 2.5,2.5s-1.12,2.5 -2.5,2.5s-2.5,-1.12 -2.5,-2.5s1.12,-2.5 2.5,-2.5z"/>
+</vector>

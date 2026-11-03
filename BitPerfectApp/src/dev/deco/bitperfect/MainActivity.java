@@ -37,6 +37,11 @@ public class MainActivity extends Activity {
     private TextView tvNavRate;
     private TextView tvNavSettings;
 
+    private ImageView ivNavDashboard;
+    private ImageView ivNavApps;
+    private ImageView ivNavRate;
+    private ImageView ivNavSettings;
+
     // Dashboard Views
     private AudioPipelineGaugeView pipelineGaugeView;
     private TextView btnToggleAutoSync;
@@ -132,6 +137,11 @@ public class MainActivity extends Activity {
         tvNavRate = findViewById(R.id.tvNavRate);
         tvNavSettings = findViewById(R.id.tvNavSettings);
 
+        ivNavDashboard = findViewById(R.id.ivNavDashboard);
+        ivNavApps = findViewById(R.id.ivNavApps);
+        ivNavRate = findViewById(R.id.ivNavRate);
+        ivNavSettings = findViewById(R.id.ivNavSettings);
+
         // Dashboard
         pipelineGaugeView = findViewById(R.id.pipelineGaugeView);
         btnToggleAutoSync = findViewById(R.id.btnToggleAutoSync);
@@ -216,6 +226,11 @@ public class MainActivity extends Activity {
         tvNavApps.setTextColor(tabIndex == 1 ? activeColor : inactiveColor);
         tvNavRate.setTextColor(tabIndex == 2 ? activeColor : inactiveColor);
         tvNavSettings.setTextColor(tabIndex == 3 ? activeColor : inactiveColor);
+
+        if (ivNavDashboard != null) ivNavDashboard.setColorFilter(tabIndex == 0 ? activeColor : inactiveColor);
+        if (ivNavApps != null) ivNavApps.setColorFilter(tabIndex == 1 ? activeColor : inactiveColor);
+        if (ivNavRate != null) ivNavRate.setColorFilter(tabIndex == 2 ? activeColor : inactiveColor);
+        if (ivNavSettings != null) ivNavSettings.setColorFilter(tabIndex == 3 ? activeColor : inactiveColor);
     }
 
     private void setupListeners() {

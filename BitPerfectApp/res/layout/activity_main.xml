@@ -28,45 +28,31 @@
                 android:orientation="vertical"
                 android:visibility="visible">
 
-                <!-- Top Bar: Minimalist (Matching Screen 1 Mockup) -->
-                <RelativeLayout
+                <!-- Top Bar: Clean Minimalist Header (Without Bell/Calendar) -->
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="2dp"
                     android:layout_marginBottom="16dp">
-
-                    <TextView
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
-                        android:gravity="center"
-                        android:text="📅"
-                        android:textSize="18sp"
-                        android:background="@drawable/bg_squircle_coral" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_centerInParent="true"
                         android:text="Dashboard"
                         android:textColor="@color/text_title"
-                        android:textSize="18sp"
+                        android:textSize="26sp"
                         android:textStyle="bold"
                         android:fontFamily="sans-serif-medium" />
 
                     <TextView
-                        android:id="@+id/btnTopAction"
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:gravity="center"
-                        android:text="🔔"
-                        android:textSize="18sp"
-                        android:background="@drawable/bg_squircle_coral"
-                        android:clickable="true"
-                        android:focusable="true" />
-                </RelativeLayout>
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Pemantauan Audio Bit-Perfect Live"
+                        android:textColor="@color/text_muted"
+                        android:textSize="12sp"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
 
                 <!-- Hero Center Card: Segmented Arch Gauge & Big Live Stat (White Card) -->
                 <LinearLayout
@@ -773,11 +759,13 @@
             android:clickable="true"
             android:focusable="true">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🏠"
-                android:textSize="16sp" />
+            <ImageView
+                android:id="@+id/ivNavDashboard"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_apple_dashboard"
+                android:tint="@color/dock_icon_active"
+                android:contentDescription="Dashboard" />
 
             <TextView
                 android:id="@+id/tvNavDashboard"
@@ -787,7 +775,7 @@
                 android:textColor="@color/dock_icon_active"
                 android:textSize="9sp"
                 android:textStyle="bold"
-                android:layout_marginTop="2dp" />
+                android:layout_marginTop="3dp" />
         </LinearLayout>
 
         <!-- Tab 2: Apps (Bypass Selector) -->
@@ -801,11 +789,13 @@
             android:clickable="true"
             android:focusable="true">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📖"
-                android:textSize="16sp" />
+            <ImageView
+                android:id="@+id/ivNavApps"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_apple_bypass"
+                android:tint="@color/dock_icon_inactive"
+                android:contentDescription="Bypass" />
 
             <TextView
                 android:id="@+id/tvNavApps"
@@ -815,7 +805,7 @@
                 android:textColor="@color/dock_icon_inactive"
                 android:textSize="9sp"
                 android:textStyle="bold"
-                android:layout_marginTop="2dp" />
+                android:layout_marginTop="3dp" />
         </LinearLayout>
 
         <!-- Center Highlighted Squircle: Instant Engine Bypass Action -->
@@ -829,14 +819,14 @@
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+            <ImageView
+                android:id="@+id/ivNavBolt"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
                 android:layout_centerInParent="true"
-                android:text="⚡"
-                android:textColor="#FFFFFF"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:src="@drawable/ic_apple_bolt"
+                android:tint="#FFFFFF"
+                android:contentDescription="Bolt Action" />
         </RelativeLayout>
 
         <!-- Tab 3: Rate Controller -->
@@ -850,11 +840,13 @@
             android:clickable="true"
             android:focusable="true">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⭐"
-                android:textSize="16sp" />
+            <ImageView
+                android:id="@+id/ivNavRate"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_apple_rate"
+                android:tint="@color/dock_icon_inactive"
+                android:contentDescription="Rate" />
 
             <TextView
                 android:id="@+id/tvNavRate"
@@ -864,7 +856,7 @@
                 android:textColor="@color/dock_icon_inactive"
                 android:textSize="9sp"
                 android:textStyle="bold"
-                android:layout_marginTop="2dp" />
+                android:layout_marginTop="3dp" />
         </LinearLayout>
 
         <!-- Tab 4: Settings & System -->
@@ -878,11 +870,13 @@
             android:clickable="true"
             android:focusable="true">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚙️"
-                android:textSize="16sp" />
+            <ImageView
+                android:id="@+id/ivNavSettings"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_apple_settings"
+                android:tint="@color/dock_icon_inactive"
+                android:contentDescription="Sistem" />
 
             <TextView
                 android:id="@+id/tvNavSettings"
@@ -892,7 +886,7 @@
                 android:textColor="@color/dock_icon_inactive"
                 android:textSize="9sp"
                 android:textStyle="bold"
-                android:layout_marginTop="2dp" />
+                android:layout_marginTop="3dp" />
         </LinearLayout>
 
     </LinearLayout>
