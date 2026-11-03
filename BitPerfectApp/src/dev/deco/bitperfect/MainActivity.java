@@ -13,25 +13,43 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-    private TextView btnEngineStatus;
+    // Pages / Tabs
+    private View pageDashboard;
+    private View pageApps;
+    private View pageRate;
+    private View pageSettings;
+
+    // Bottom Navigation Items
+    private View navTabDashboard;
+    private View navTabApps;
+    private View navCenterAction;
+    private View navTabRate;
+    private View navTabSettings;
+
+    private TextView tvNavDashboard;
+    private TextView tvNavApps;
+    private TextView tvNavRate;
+    private TextView tvNavSettings;
+
+    // Dashboard Views
     private AudioPipelineGaugeView pipelineGaugeView;
     private TextView btnToggleAutoSync;
-
     private TextView tvActiveApp;
     private TextView tvSourceDetail;
     private TextView tvSourceRate;
     private TextView tvSourceBitDepth;
-
     private TextView tvDacName;
     private TextView tvDacFormat;
     private TextView tvDacRate;
     private TextView tvMatchBadge;
 
+    // Per-App Bypass Chips
     private TextView chipApple;
     private TextView chipTidal;
     private TextView chipBitchord;
     private TextView chipSpotify;
 
+    // Manual Rate Buttons
     private Button btnRate44k;
     private Button btnRate48k;
     private Button btnRate88k;
@@ -40,10 +58,11 @@ public class MainActivity extends Activity {
     private Button btnRate192k;
     private Button btnRate384k;
     private Button btnRateReset;
-
-    private View dockCenterAction;
-
     private Button[] mRateButtons;
+
+    // Settings Action
+    private Button btnApplyEngine;
+
     private boolean mAutoRate = true;
 
     private final BroadcastReceiver mStatusReceiver = new BroadcastReceiver() {
@@ -71,12 +90,31 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         initViews();
+        setupNavigation();
         setupListeners();
         startMonitorService();
     }
 
     private void initViews() {
-        btnEngineStatus = findViewById(R.id.btnEngineStatus);
+        // Pages
+        pageDashboard = findViewById(R.id.pageDashboard);
+        pageApps = findViewById(R.id.pageApps);
+        pageRate = findViewById(R.id.pageRate);
+        pageSettings = findViewById(R.id.pageSettings);
+
+        // Navigation
+        navTabDashboard = findViewById(R.id.navTabDashboard);
+        navTabApps = findViewById(R.id.navTabApps);
+        navCenterAction = findViewById(R.id.navCenterAction);
+        navTabRate = findViewById(R.id.navTabRate);
+        navTabSettings = findViewById(R.id.navTabSettings);
+
+        tvNavDashboard = findViewById(R.id.tvNavDashboard);
+        tvNavApps = findViewById(R.id.tvNavApps);
+        tvNavRate = findViewById(R.id.tvNavRate);
+        tvNavSettings = findViewById(R.id.tvNavSettings);
+
+        // Dashboard
         pipelineGaugeView = findViewById(R.id.pipelineGaugeView);
         btnToggleAutoSync = findViewById(R.id.btnToggleAutoSync);
 
@@ -90,11 +128,13 @@ public class MainActivity extends Activity {
         tvDacRate = findViewById(R.id.tvDacRate);
         tvMatchBadge = findViewById(R.id.tvMatchBadge);
 
+        // Apps
         chipApple = findViewById(R.id.chipApple);
         chipTidal = findViewById(R.id.chipTidal);
         chipBitchord = findViewById(R.id.chipBitchord);
         chipSpotify = findViewById(R.id.chipSpotify);
 
+        // Rates
         btnRate44k = findViewById(R.id.btnRate44k);
         btnRate48k = findViewById(R.id.btnRate48k);
         btnRate88k = findViewById(R.id.btnRate88k);
@@ -104,37 +144,55 @@ public class MainActivity extends Activity {
         btnRate384k = findViewById(R.id.btnRate384k);
         btnRateReset = findViewById(R.id.btnRateReset);
 
-        dockCenterAction = findViewById(R.id.dockCenterAction);
-
         mRateButtons = new Button[]{
                 btnRate44k, btnRate48k, btnRate88k, btnRate96k,
                 btnRate176k, btnRate192k, btnRate384k, btnRateReset
         };
+
+        btnApplyEngine = findViewById(R.id.btnApplyEngine);
 
         refreshAppChips();
         updateAutoSyncPill();
         updateTelemetry(false, 0, "", 0, "--", "Tidak Ada DAC USB", "DISCONNECTED", false, "Tidak Ada Pemutaran", false, "DAC Terputus");
     }
 
+    private void setupNavigation() {
+        navTabDashboard.setOnClickListener(v -> switchTab(0));
+        navTabApps.setOnClickListener(v -> switchTab(1));
+        navTabRate.setOnClickListener(v -> switchTab(2));
+        navTabSettings.setOnClickListener(v -> switchTab(3));
+
+        navCenterAction.setOnClickListener(v -> {
+            applyEngineWithToast();
+        });
+    }
+
+    private void switchTab(int tabIndex) {
+        pageDashboard.setVisibility(tabIndex == 0 ? View.VISIBLE : View.GONE);
+        pageApps.setVisibility(tabIndex == 1 ? View.VISIBLE : View.GONE);
+        pageRate.setVisibility(tabIndex == 2 ? View.VISIBLE : View.GONE);
+        pageSettings.setVisibility(tabIndex == 3 ? View.VISIBLE : View.GONE);
+
+        int activeColor = getColor(R.color.dock_icon_active);
+        int inactiveColor = getColor(R.color.dock_icon_inactive);
+
+        tvNavDashboard.setTextColor(tabIndex == 0 ? activeColor : inactiveColor);
+        tvNavApps.setTextColor(tabIndex == 1 ? activeColor : inactiveColor);
+        tvNavRate.setTextColor(tabIndex == 2 ? activeColor : inactiveColor);
+        tvNavSettings.setTextColor(tabIndex == 3 ? activeColor : inactiveColor);
+    }
+
     private void setupListeners() {
-        View.OnClickListener applyEngineListener = v -> {
-            new Thread(() -> {
-                boolean ok = AudioEngine.applyEngineTweaks(MainActivity.this);
-                runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, ok ? "⚡ Engine Bypass Mixer Aktif & Diterapkan!" : "Gagal menerapkan tweak (Periksa izin Root)", Toast.LENGTH_SHORT).show();
-                });
-            }).start();
-        };
-
-        btnEngineStatus.setOnClickListener(applyEngineListener);
-        if (dockCenterAction != null) dockCenterAction.setOnClickListener(applyEngineListener);
-
         btnToggleAutoSync.setOnClickListener(v -> {
             mAutoRate = !mAutoRate;
             updateAutoSyncPill();
             restartMonitorService();
-            Toast.makeText(MainActivity.this, "Auto-Sync Clock: " + (mAutoRate ? "Aktif (Otomatis Ikuti Track)" : "Nonaktif (Manual Clock)"), Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, "Auto-Sync Clock: " + (mAutoRate ? "Aktif" : "Nonaktif"), Toast.LENGTH_SHORT).show();
         });
+
+        if (btnApplyEngine != null) {
+            btnApplyEngine.setOnClickListener(v -> applyEngineWithToast());
+        }
 
         chipApple.setOnClickListener(v -> toggleAppChip(AudioEngine.PKG_APPLE_MUSIC, "Apple Music"));
         chipTidal.setOnClickListener(v -> toggleAppChip(AudioEngine.PKG_TIDAL, "TIDAL"));
@@ -151,15 +209,22 @@ public class MainActivity extends Activity {
         btnRateReset.setOnClickListener(v -> selectRate(0, btnRateReset));
     }
 
+    private void applyEngineWithToast() {
+        new Thread(() -> {
+            boolean ok = AudioEngine.applyEngineTweaks(MainActivity.this);
+            runOnUiThread(() -> {
+                Toast.makeText(MainActivity.this, ok ? "⚡ Engine Bypass Mixer Aktif & Diterapkan!" : "Gagal menerapkan tweak (Periksa izin KernelSU)", Toast.LENGTH_SHORT).show();
+            });
+        }).start();
+    }
+
     private void updateAutoSyncPill() {
         if (mAutoRate) {
-            btnToggleAutoSync.setText("⚡ Auto-Sync Clock: AKTIF");
-            btnToggleAutoSync.setTextColor(getColor(R.color.accent_emerald));
-            btnToggleAutoSync.setBackgroundResource(R.drawable.chip_app_active);
+            btnToggleAutoSync.setText("+  Ikuti Rate Otomatis: AKTIF");
+            btnToggleAutoSync.setTextColor(getColor(R.color.accent_coral));
         } else {
-            btnToggleAutoSync.setText("⏸️ Auto-Sync Clock: NONAKTIF");
-            btnToggleAutoSync.setTextColor(getColor(R.color.text_secondary));
-            btnToggleAutoSync.setBackgroundResource(R.drawable.chip_app_inactive);
+            btnToggleAutoSync.setText("+  Ikuti Rate Otomatis: NONAKTIF");
+            btnToggleAutoSync.setTextColor(getColor(R.color.text_muted));
         }
     }
 
@@ -171,32 +236,32 @@ public class MainActivity extends Activity {
     }
 
     private void refreshAppChips() {
-        setChipState(chipApple, AudioEngine.PKG_APPLE_MUSIC, "Apple Music");
-        setChipState(chipTidal, AudioEngine.PKG_TIDAL, "TIDAL");
-        setChipState(chipBitchord, AudioEngine.PKG_BITCHORD, "Bitchord");
-        setChipState(chipSpotify, AudioEngine.PKG_SPOTIFY, "Spotify");
+        setChipState(chipApple, AudioEngine.PKG_APPLE_MUSIC, "🍎 Apple Music");
+        setChipState(chipTidal, AudioEngine.PKG_TIDAL, "🌊 TIDAL");
+        setChipState(chipBitchord, AudioEngine.PKG_BITCHORD, "🎵 Bitchord");
+        setChipState(chipSpotify, AudioEngine.PKG_SPOTIFY, "🟢 Spotify");
     }
 
     private void setChipState(TextView chip, String pkg, String label) {
         boolean active = AudioEngine.isAppBypassed(this, pkg);
         if (active) {
-            chip.setText("✓ " + label);
-            chip.setTextColor(getColor(R.color.accent_emerald));
-            chip.setBackgroundResource(R.drawable.chip_app_active);
+            chip.setText(label);
+            chip.setTextColor(getColor(R.color.accent_coral));
+            chip.setBackgroundResource(R.drawable.bg_chip_app_active);
         } else {
             chip.setText(label);
-            chip.setTextColor(getColor(R.color.text_secondary));
-            chip.setBackgroundResource(R.drawable.chip_app_inactive);
+            chip.setTextColor(getColor(R.color.text_body));
+            chip.setBackgroundResource(R.drawable.bg_chip_app_inactive);
         }
     }
 
     private void selectRate(int rateHz, Button clickedBtn) {
         for (Button b : mRateButtons) {
-            b.setBackgroundResource(R.drawable.btn_rate_glass);
-            b.setTextColor(getColor(R.color.text_primary));
+            b.setBackgroundResource(R.drawable.btn_rate_light);
+            b.setTextColor(getColor(R.color.text_title));
         }
-        clickedBtn.setBackgroundResource(R.drawable.btn_rate_glass_active);
-        clickedBtn.setTextColor(getColor(R.color.accent_emerald));
+        clickedBtn.setBackgroundResource(R.drawable.btn_rate_light_active);
+        clickedBtn.setTextColor(getColor(R.color.card_bg));
 
         new Thread(() -> {
             AudioEngine.setDacRate(MainActivity.this, rateHz, true);
@@ -234,8 +299,8 @@ public class MainActivity extends Activity {
             tvDacFormat.setText(dacFormat != null ? dacFormat : "Terhubung");
             if (isBitPerfect) {
                 tvMatchBadge.setText("Zero SRC 1:1");
-                tvMatchBadge.setTextColor(getColor(R.color.accent_emerald));
-                tvDacRate.setTextColor(getColor(R.color.accent_emerald));
+                tvMatchBadge.setTextColor(getColor(R.color.accent_coral));
+                tvDacRate.setTextColor(getColor(R.color.accent_coral));
             } else if ("MIXER".equals(routeType)) {
                 tvMatchBadge.setText("Resampled 48k");
                 tvMatchBadge.setTextColor(getColor(R.color.accent_amber));
@@ -270,11 +335,11 @@ public class MainActivity extends Activity {
 
         if (target != null) {
             for (Button b : mRateButtons) {
-                b.setBackgroundResource(R.drawable.btn_rate_glass);
-                b.setTextColor(getColor(R.color.text_primary));
+                b.setBackgroundResource(R.drawable.btn_rate_light);
+                b.setTextColor(getColor(R.color.text_title));
             }
-            target.setBackgroundResource(R.drawable.btn_rate_glass_active);
-            target.setTextColor(getColor(R.color.accent_emerald));
+            target.setBackgroundResource(R.drawable.btn_rate_light_active);
+            target.setTextColor(getColor(R.color.card_bg));
         }
     }
 

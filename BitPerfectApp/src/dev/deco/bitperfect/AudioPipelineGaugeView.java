@@ -83,61 +83,67 @@ public class AudioPipelineGaugeView extends View {
         float cx = w / 2f;
         float cy = h * 0.52f;
         float radius = Math.min(w, h) * 0.43f;
-        float strokeWidth = 17f * density;
+        float strokeWidth = 18f * density;
 
         mArcRect.set(cx - radius, cy - radius, cx + radius, cy + radius);
         mArcPaint.setStrokeWidth(strokeWidth);
 
-        // Determine active segments and theme colors
+        // Segment count and colors matching the Mockup warm palette
         int activeSegments = 0;
         int activeColor;
         String topIcon;
         String subtitleText;
         String statusText;
 
+        // Mockup exact colors:
+        final int CORAL_ACTIVE = Color.parseColor("#FF7B54"); // Warm Coral from Mockup Arc
+        final int INACTIVE_BEIGE = Color.parseColor("#EADFCF"); // Soft Warm Beige from Mockup
+        final int AMBER_MIXER = Color.parseColor("#F59E0B");
+        final int SLATE_IDLE = Color.parseColor("#A09C96");
+        final int TEXT_TITLE = Color.parseColor("#18191D");
+
         if (!mIsDacConnected || "DISCONNECTED".equals(mRouteType)) {
             // DAC UNPLUGGED
             activeSegments = 0;
-            activeColor = Color.parseColor("#475569");
+            activeColor = SLATE_IDLE;
             topIcon = "🔌";
             subtitleText = "DAC TIDAK TERDETEKSI";
             statusText = "○ SAMBUNGKAN USB DAC";
         } else if ("STANDBY".equals(mRouteType) || mSampleRate <= 0) {
             // DAC CONNECTED BUT IDLE
             activeSegments = 1;
-            activeColor = Color.parseColor("#64748B");
+            activeColor = SLATE_IDLE;
             topIcon = "⏸️";
             subtitleText = "AUDIO STANDBY (IDLE)";
             statusText = "○ MENUNGGU PEMUTARAN AUDIO";
         } else if (mIsBitPerfect || "DIRECT_PCM".equals(mRouteType)) {
-            // DIRECT BIT-PERFECT
+            // DIRECT BIT-PERFECT (Warm Coral!)
             if (mSampleRate >= 352800) activeSegments = 10;
             else if (mSampleRate >= 176400) activeSegments = 8;
             else if (mSampleRate >= 88200) activeSegments = 6;
-            else if (mSampleRate >= 44100) activeSegments = 3;
+            else if (mSampleRate >= 44100) activeSegments = 4;
             else activeSegments = 2;
 
-            activeColor = Color.parseColor("#10B981");
+            activeColor = CORAL_ACTIVE;
             topIcon = "⚡";
             subtitleText = "AUDIO PIPELINE LIVE";
             statusText = "● 1:1 DIRECT BIT-PERFECT (ZERO SRC)";
         } else if ("MIXER".equals(mRouteType)) {
             // ANDROID MIXER 48k
-            activeSegments = 3;
-            activeColor = Color.parseColor("#F59E0B");
+            activeSegments = 4;
+            activeColor = AMBER_MIXER;
             topIcon = "🔊";
             subtitleText = "MIXER ANDROID AKTIF";
             statusText = "● 48 kHz RESAMPLE (MIXER)";
         } else {
-            // SPEAKER OR OTHER
+            // SPEAKER INTERNAL
             activeSegments = 2;
-            activeColor = Color.parseColor("#64748B");
+            activeColor = SLATE_IDLE;
             topIcon = "📱";
             subtitleText = "SPEAKER INTERNAL HP";
             statusText = "● AUDIO KE SPEAKER INTERNAL";
         }
 
-        int inactiveColor = Color.parseColor("#1C2536");
         float segmentSweep = (TOTAL_SWEEP - (TOTAL_SEGMENTS - 1) * GAP_ANGLE) / TOTAL_SEGMENTS;
 
         // Draw segmented arch blocks
@@ -146,12 +152,12 @@ public class AudioPipelineGaugeView extends View {
             if (i < activeSegments) {
                 mArcPaint.setColor(activeColor);
             } else {
-                mArcPaint.setColor(inactiveColor);
+                mArcPaint.setColor(INACTIVE_BEIGE);
             }
             canvas.drawArc(mArcRect, start, segmentSweep, false, mArcPaint);
         }
 
-        // --- Center Content ---
+        // --- Center Content (Like 1250 kcal in mockup) ---
 
         // 1. Top Icon & Pipeline Live Subtitle
         float topIconY = cy - radius * 0.44f;
@@ -161,7 +167,7 @@ public class AudioPipelineGaugeView extends View {
         mTextPaint.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD));
         canvas.drawText(topIcon, cx, topIconY, mTextPaint);
 
-        mTextPaint.setColor(Color.parseColor("#8E9BB0"));
+        mTextPaint.setColor(Color.parseColor("#8A8782"));
         mTextPaint.setTextSize(10.5f * density);
         mTextPaint.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL));
         mTextPaint.setLetterSpacing(0.06f);
@@ -177,7 +183,7 @@ public class AudioPipelineGaugeView extends View {
             mainRate = String.format("%.1f", mSampleRate / 1000.0);
         }
 
-        mTextPaint.setColor(Color.parseColor("#FFFFFF"));
+        mTextPaint.setColor(TEXT_TITLE);
         mTextPaint.setTextSize(38f * density);
         mTextPaint.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD));
         mTextPaint.setLetterSpacing(0.01f);
@@ -185,7 +191,7 @@ public class AudioPipelineGaugeView extends View {
         float rateY = cy + 8f * density;
         canvas.drawText(mainRate + " kHz", cx, rateY, mTextPaint);
 
-        // 3. Status Badge / Match Subtitle
+        // 3. Status Badge / Match Subtitle (Like Goal 2000 kcal)
         mTextPaint.setTextSize(10f * density);
         mTextPaint.setLetterSpacing(0.04f);
         mTextPaint.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD));

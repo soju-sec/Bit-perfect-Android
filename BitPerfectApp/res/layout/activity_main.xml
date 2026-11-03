@@ -2,7 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_canvas">
+    android:background="@color/canvas_bg">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -15,534 +15,732 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
             android:paddingTop="28dp"
-            android:paddingBottom="130dp">
+            android:paddingBottom="120dp">
 
-            <!-- 1. Top Bar: Minimalist & Clean -->
-            <RelativeLayout
+            <!-- ================= PAGE 1: DASHBOARD ================= -->
+            <LinearLayout
+                android:id="@+id/pageDashboard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="14dp">
+                android:orientation="vertical"
+                android:visibility="visible">
 
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentStart="true"
-                    android:layout_centerVertical="true"
-                    android:orientation="vertical">
+                <!-- Top Bar: Minimalist (Matching Screen 1 Mockup) -->
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="16dp">
 
                     <TextView
-                        android:id="@+id/tvAppTitle"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:gravity="center"
+                        android:text="📅"
+                        android:textSize="18sp"
+                        android:background="@drawable/bg_squircle_coral" />
+
+                    <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="BitPerfect Live"
-                        android:textColor="@color/text_primary"
-                        android:textSize="22sp"
+                        android:layout_centerInParent="true"
+                        android:text="Dashboard"
+                        android:textColor="@color/text_title"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:fontFamily="sans-serif-medium" />
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Live Pipeline &amp; Zero-SRC DAC Engine"
-                        android:textColor="@color/text_muted"
-                        android:textSize="11sp"
-                        android:layout_marginTop="2dp" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/btnEngineStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:text="⚡ BYPASS ENGINE"
-                    android:textColor="@color/accent_emerald"
-                    android:background="@drawable/chip_app_active"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:paddingTop="7dp"
-                    android:paddingBottom="7dp"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:clickable="true"
-                    android:focusable="true" />
-            </RelativeLayout>
-
-            <!-- 2. Hero Center Card: Segmented Arch & Big Live Stat (Like kcal in mockup) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_glass_card"
-                android:orientation="vertical"
-                android:paddingTop="14dp"
-                android:paddingBottom="16dp"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:gravity="center_horizontal"
-                android:layout_marginBottom="14dp">
-
-                <!-- The Live Audio Pipeline Segmented Arch Gauge -->
-                <dev.deco.bitperfect.AudioPipelineGaugeView
-                    android:id="@+id/pipelineGaugeView"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
-
-                <!-- Action Pill under Arch (like the '+' button in mockup) -->
-                <TextView
-                    android:id="@+id/btnToggleAutoSync"
-                    android:layout_width="wrap_content"
-                    android:layout_height="34dp"
-                    android:gravity="center"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:text="⚡ Auto-Sync Clock: AKTIF"
-                    android:textColor="@color/accent_emerald"
-                    android:background="@drawable/chip_app_active"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:layout_marginTop="4dp" />
-
-            </LinearLayout>
-
-            <!-- 3. Telemetry Stream Cards (Styled like Lunch/Breakfast cards in mockup) -->
-            
-            <!-- Card 1: Stream Sumber (Track Source) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_glass_card"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:padding="16dp"
-                android:layout_marginBottom="10dp">
-
-                <!-- Left: 44dp Squircle Icon -->
-                <RelativeLayout
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:background="@drawable/bg_icon_squircle">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerInParent="true"
-                        android:text="🎵"
-                        android:textSize="18sp" />
-                </RelativeLayout>
-
-                <!-- Middle: App & Track Info -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="14dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/tvActiveApp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Tidak Ada Pemutaran"
-                        android:textColor="@color/text_primary"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tvSourceDetail"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Audio Idle"
-                        android:textColor="@color/text_muted"
-                        android:textSize="11sp"
-                        android:layout_marginTop="2dp" />
-                </LinearLayout>
-
-                <!-- Right: Big Rate Number & Format -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/tvSourceRate"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="-- kHz"
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tvSourceBitDepth"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="--"
-                        android:textColor="@color/text_muted"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:layout_marginTop="2dp" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- Card 2: Hardware DAC (Endpoint) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_glass_card"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:padding="16dp"
-                android:layout_marginBottom="14dp">
-
-                <!-- Left: 44dp Squircle Icon -->
-                <RelativeLayout
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:background="@drawable/bg_icon_squircle">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerInParent="true"
-                        android:text="🎧"
-                        android:textSize="18sp" />
-                </RelativeLayout>
-
-                <!-- Middle: DAC Name & ALSA Endpoint -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="14dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/tvDacName"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Tidak Ada DAC USB"
-                        android:textColor="@color/text_primary"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tvDacFormat"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Status: Terputus / Unplugged"
-                        android:textColor="@color/text_muted"
-                        android:textSize="11sp"
-                        android:layout_marginTop="2dp" />
-                </LinearLayout>
-
-                <!-- Right: Big DAC Clock & Match -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/tvDacRate"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="-- kHz"
-                        android:textColor="@color/text_muted"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tvMatchBadge"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Offline"
-                        android:textColor="@color/text_muted"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:layout_marginTop="2dp" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- 4. Target Aplikasi (Category Chips like Screen 3 in mockup) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_glass_card"
-                android:orientation="vertical"
-                android:padding="16dp"
-                android:layout_marginBottom="14dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="TARGET APLIKASI BYPASS"
-                    android:textColor="@color/text_muted"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.08"
-                    android:layout_marginBottom="10dp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/chipApple"
-                        android:layout_width="0dp"
-                        android:layout_height="36dp"
-                        android:layout_weight="1"
+                        android:id="@+id/btnTopAction"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
                         android:gravity="center"
-                        android:text="Apple Music"
-                        android:textColor="@color/accent_emerald"
-                        android:background="@drawable/chip_app_active"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:layout_marginEnd="4dp" />
-
-                    <TextView
-                        android:id="@+id/chipTidal"
-                        android:layout_width="0dp"
-                        android:layout_height="36dp"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:text="TIDAL"
-                        android:textColor="@color/accent_emerald"
-                        android:background="@drawable/chip_app_active"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:layout_marginEnd="4dp" />
-
-                    <TextView
-                        android:id="@+id/chipBitchord"
-                        android:layout_width="0dp"
-                        android:layout_height="36dp"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:text="Bitchord"
-                        android:textColor="@color/accent_emerald"
-                        android:background="@drawable/chip_app_active"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:layout_marginEnd="4dp" />
-
-                    <TextView
-                        android:id="@+id/chipSpotify"
-                        android:layout_width="0dp"
-                        android:layout_height="36dp"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:text="Spotify"
-                        android:textColor="@color/text_secondary"
-                        android:background="@drawable/chip_app_inactive"
-                        android:textSize="11sp"
+                        android:text="🔔"
+                        android:textSize="18sp"
+                        android:background="@drawable/bg_squircle_coral"
                         android:clickable="true"
                         android:focusable="true" />
-                </LinearLayout>
+                </RelativeLayout>
 
-                <TextView
+                <!-- Hero Center Card: Segmented Arch Gauge & Big Live Stat (White Card) -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🛡️ Video (YouTube/TikTok) otomatis memakai mixer 48k agar tidak patah-patah."
-                    android:textColor="@color/text_muted"
-                    android:textSize="10sp"
-                    android:layout_marginTop="10dp" />
+                    android:background="@drawable/bg_card_white"
+                    android:orientation="vertical"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="20dp"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:gravity="center_horizontal"
+                    android:elevation="2dp"
+                    android:layout_marginBottom="14dp">
+
+                    <!-- Audio Pipeline Live Arch Meter -->
+                    <dev.deco.bitperfect.AudioPipelineGaugeView
+                        android:id="@+id/pipelineGaugeView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+
+                    <!-- Pill button under Arch (Matching '+' pill in Mockup) -->
+                    <TextView
+                        android:id="@+id/btnToggleAutoSync"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:gravity="center"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        android:text="+  Ikuti Rate Otomatis: AKTIF"
+                        android:textColor="@color/text_title"
+                        android:background="@drawable/bg_pill_button"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginTop="6dp" />
+
+                </LinearLayout>
+
+                <!-- Card 1: Stream Sumber (Like Lunch card in Mockup) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_white"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="16dp"
+                    android:elevation="2dp"
+                    android:layout_marginBottom="12dp">
+
+                    <RelativeLayout
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_squircle_coral">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:text="🎵"
+                            android:textSize="20sp" />
+                    </RelativeLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="14dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvActiveApp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Tidak Ada Pemutaran"
+                            android:textColor="@color/text_title"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvSourceDetail"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Audio Idle"
+                            android:textColor="@color/text_muted"
+                            android:textSize="12sp"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="end"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvSourceRate"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="-- kHz"
+                            android:textColor="@color/text_title"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvSourceBitDepth"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="--"
+                            android:textColor="@color/accent_coral"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Card 2: Hardware DAC (Like Breakfast card in Mockup) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_white"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="16dp"
+                    android:elevation="2dp"
+                    android:layout_marginBottom="14dp">
+
+                    <RelativeLayout
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_squircle_coral">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:text="🎧"
+                            android:textSize="20sp" />
+                    </RelativeLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="14dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvDacName"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Tidak Ada DAC USB"
+                            android:textColor="@color/text_title"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvDacFormat"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Status: Terputus (Unplugged)"
+                            android:textColor="@color/text_muted"
+                            android:textSize="12sp"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="end"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvDacRate"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="-- kHz"
+                            android:textColor="@color/text_muted"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvMatchBadge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Offline"
+                            android:textColor="@color/text_muted"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
             </LinearLayout>
 
-            <!-- 5. Manual Clock Controller -->
+
+            <!-- ================= PAGE 2: TARGET APPS (BYPASS) ================= -->
             <LinearLayout
+                android:id="@+id/pageApps"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_glass_card"
                 android:orientation="vertical"
-                android:padding="16dp"
-                android:layout_marginBottom="14dp">
+                android:visibility="gone">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="PILIHAN SAMPLE RATE MANUAL"
+                    android:text="Target Bypass"
+                    android:textColor="@color/text_title"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Aplikasi yang diizinkan mem-bypass mixer Android ke DAC"
                     android:textColor="@color/text_muted"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.08"
-                    android:layout_marginBottom="10dp" />
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="16dp" />
 
-                <!-- Row 1: 44.1k, 48k, 88.2k, 96k -->
+                <!-- Category Chips Card -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="8dp">
+                    android:background="@drawable/bg_card_white"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:elevation="2dp"
+                    android:layout_marginBottom="14dp">
 
-                    <Button
-                        android:id="@+id/btnRate44k"
-                        android:layout_width="0dp"
-                        android:layout_height="38dp"
-                        android:layout_weight="1"
-                        android:text="44.1k"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        android:background="@drawable/btn_rate_glass"
-                        android:textAllCaps="false"
-                        android:layout_marginEnd="6dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="APLIKASI MUSIK HI-RES"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08"
+                        android:layout_marginBottom="12dp" />
 
-                    <Button
-                        android:id="@+id/btnRate48k"
-                        android:layout_width="0dp"
-                        android:layout_height="38dp"
-                        android:layout_weight="1"
-                        android:text="48k"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        android:background="@drawable/btn_rate_glass"
-                        android:textAllCaps="false"
-                        android:layout_marginEnd="6dp" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="10dp">
 
-                    <Button
-                        android:id="@+id/btnRate88k"
-                        android:layout_width="0dp"
-                        android:layout_height="38dp"
-                        android:layout_weight="1"
-                        android:text="88.2k"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        android:background="@drawable/btn_rate_glass"
-                        android:textAllCaps="false"
-                        android:layout_marginEnd="6dp" />
+                        <TextView
+                            android:id="@+id/chipApple"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="🍎 Apple Music"
+                            android:textColor="@color/accent_coral"
+                            android:background="@drawable/bg_chip_app_active"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginEnd="6dp" />
 
-                    <Button
-                        android:id="@+id/btnRate96k"
-                        android:layout_width="0dp"
-                        android:layout_height="38dp"
-                        android:layout_weight="1"
-                        android:text="96k"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        android:background="@drawable/btn_rate_glass"
-                        android:textAllCaps="false" />
+                        <TextView
+                            android:id="@+id/chipTidal"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="🌊 TIDAL"
+                            android:textColor="@color/accent_coral"
+                            android:background="@drawable/bg_chip_app_active"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:clickable="true"
+                            android:focusable="true" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/chipBitchord"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="🎵 Bitchord"
+                            android:textColor="@color/accent_coral"
+                            android:background="@drawable/bg_chip_app_active"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:id="@+id/chipSpotify"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="🟢 Spotify"
+                            android:textColor="@color/text_body"
+                            android:background="@drawable/bg_chip_app_inactive"
+                            android:textSize="12sp"
+                            android:clickable="true"
+                            android:focusable="true" />
+                    </LinearLayout>
                 </LinearLayout>
 
-                <!-- Row 2: 176.4k, 192k, 384k, Reset -->
+                <!-- Video Apps Safe Rule Banner -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:background="@drawable/bg_card_white"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:elevation="2dp">
 
-                    <Button
-                        android:id="@+id/btnRate176k"
-                        android:layout_width="0dp"
-                        android:layout_height="38dp"
-                        android:layout_weight="1"
-                        android:text="176.4k"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        android:background="@drawable/btn_rate_glass"
-                        android:textAllCaps="false"
-                        android:layout_marginEnd="6dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🛡️ PERLINDUNGAN SINKRONISASI VIDEO"
+                        android:textColor="@color/accent_coral"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08"
+                        android:layout_marginBottom="6dp" />
 
-                    <Button
-                        android:id="@+id/btnRate192k"
-                        android:layout_width="0dp"
-                        android:layout_height="38dp"
-                        android:layout_weight="1"
-                        android:text="192k"
-                        android:textColor="@color/text_primary"
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Aplikasi video seperti YouTube, TikTok, dan Netflix secara otomatis dikunci pada mixer standar 48 kHz. Hal ini mencegah frame lag atau audio patah-patah saat menonton video."
+                        android:textColor="@color/text_body"
                         android:textSize="12sp"
-                        android:background="@drawable/btn_rate_glass"
-                        android:textAllCaps="false"
-                        android:layout_marginEnd="6dp" />
-
-                    <Button
-                        android:id="@+id/btnRate384k"
-                        android:layout_width="0dp"
-                        android:layout_height="38dp"
-                        android:layout_weight="1"
-                        android:text="384k"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        android:background="@drawable/btn_rate_glass"
-                        android:textAllCaps="false"
-                        android:layout_marginEnd="6dp" />
-
-                    <Button
-                        android:id="@+id/btnRateReset"
-                        android:layout_width="0dp"
-                        android:layout_height="38dp"
-                        android:layout_weight="1"
-                        android:text="Reset"
-                        android:textColor="@color/accent_amber"
-                        android:textSize="12sp"
-                        android:background="@drawable/btn_rate_glass"
-                        android:textAllCaps="false" />
+                        android:lineSpacingExtra="3dp" />
                 </LinearLayout>
+
             </LinearLayout>
 
-            <TextView
+
+            <!-- ================= PAGE 3: MANUAL RATE CONTROLLER ================= -->
+            <LinearLayout
+                android:id="@+id/pageRate"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="Bypass HAL AudioFlinger • Non-destructive • Tanpa Modul Zip Magisk"
-                android:textColor="@color/text_muted"
-                android:textSize="10sp" />
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Clock Controller"
+                    android:textColor="@color/text_title"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Kunci frekuensi hardware DAC ke sample rate tertentu"
+                    android:textColor="@color/text_muted"
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- 2x4 Grid Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_white"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:elevation="2dp"
+                    android:layout_marginBottom="14dp">
+
+                    <!-- Row 1: 44.1k, 48k, 88.2k, 96k -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="10dp">
+
+                        <Button
+                            android:id="@+id/btnRate44k"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:text="44.1k"
+                            android:textColor="@color/text_title"
+                            android:textSize="12sp"
+                            android:background="@drawable/btn_rate_light"
+                            android:textAllCaps="false"
+                            android:layout_marginEnd="6dp" />
+
+                        <Button
+                            android:id="@+id/btnRate48k"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:text="48k"
+                            android:textColor="@color/text_title"
+                            android:textSize="12sp"
+                            android:background="@drawable/btn_rate_light"
+                            android:textAllCaps="false"
+                            android:layout_marginEnd="6dp" />
+
+                        <Button
+                            android:id="@+id/btnRate88k"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:text="88.2k"
+                            android:textColor="@color/text_title"
+                            android:textSize="12sp"
+                            android:background="@drawable/btn_rate_light"
+                            android:textAllCaps="false"
+                            android:layout_marginEnd="6dp" />
+
+                        <Button
+                            android:id="@+id/btnRate96k"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:text="96k"
+                            android:textColor="@color/text_title"
+                            android:textSize="12sp"
+                            android:background="@drawable/btn_rate_light"
+                            android:textAllCaps="false" />
+                    </LinearLayout>
+
+                    <!-- Row 2: 176.4k, 192k, 384k, Reset -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btnRate176k"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:text="176.4k"
+                            android:textColor="@color/text_title"
+                            android:textSize="12sp"
+                            android:background="@drawable/btn_rate_light"
+                            android:textAllCaps="false"
+                            android:layout_marginEnd="6dp" />
+
+                        <Button
+                            android:id="@+id/btnRate192k"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:text="192k"
+                            android:textColor="@color/text_title"
+                            android:textSize="12sp"
+                            android:background="@drawable/btn_rate_light"
+                            android:textAllCaps="false"
+                            android:layout_marginEnd="6dp" />
+
+                        <Button
+                            android:id="@+id/btnRate384k"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:text="384k"
+                            android:textColor="@color/text_title"
+                            android:textSize="12sp"
+                            android:background="@drawable/btn_rate_light"
+                            android:textAllCaps="false"
+                            android:layout_marginEnd="6dp" />
+
+                        <Button
+                            android:id="@+id/btnRateReset"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:text="Reset"
+                            android:textColor="@color/accent_coral"
+                            android:textSize="12sp"
+                            android:background="@drawable/btn_rate_light"
+                            android:textAllCaps="false" />
+                    </LinearLayout>
+                </LinearLayout>
+
+            </LinearLayout>
+
+
+            <!-- ================= PAGE 4: SETTINGS & SYSTEM ================= -->
+            <LinearLayout
+                android:id="@+id/pageSettings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Sistem &amp; Engine"
+                    android:textColor="@color/text_title"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Konfigurasi Audio HAL Snapdragon &amp; KernelSU"
+                    android:textColor="@color/text_muted"
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Action Card: Apply Engine -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_white"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:elevation="2dp"
+                    android:layout_marginBottom="14dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="TWEAK AUDIO HAL SNAPDRAGON"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Menerapkan properti vendor untuk membuka USB Offload 384 kHz, bit depth 24/32-bit murni, dan menonaktifkan burst-mode (mencegah lag Hi-Res di TIDAL)."
+                        android:textColor="@color/text_body"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="3dp"
+                        android:layout_marginBottom="14dp" />
+
+                    <Button
+                        android:id="@+id/btnApplyEngine"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:text="⚡ Terapkan Engine Bypass Sekarang"
+                        android:textColor="#FFFFFF"
+                        android:background="@drawable/bg_center_squircle_coral"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="false" />
+                </LinearLayout>
+
+                <!-- KernelSU Note Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_white"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:elevation="2dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CATATAN KERNELSU"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08"
+                        android:layout_marginBottom="6dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Jika tombol tweak gagal, buka aplikasi KernelSU Manager di HP Anda dan izinkan Superuser untuk Bit-Perfect Live."
+                        android:textColor="@color/text_body"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="3dp" />
+                </LinearLayout>
+
+            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>
 
-    <!-- 6. Floating Bottom Navigation Dock (Like the bottom bar in mockup) -->
+
+    <!-- ================= FLOATING BOTTOM NAVIGATION DOCK ================= -->
+    <!-- (Exact replica of the bottom bar in Mockup Screens 1 & 3) -->
     <LinearLayout
+        android:id="@+id/layoutBottomDock"
         android:layout_width="match_parent"
-        android:layout_height="62dp"
+        android:layout_height="64dp"
         android:layout_alignParentBottom="true"
-        android:layout_marginStart="24dp"
-        android:layout_marginEnd="24dp"
-        android:layout_marginBottom="16dp"
-        android:background="@drawable/bg_bottom_dock"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_floating_dock"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp">
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:elevation="8dp">
 
-        <!-- Left Dock Item: Live Monitor -->
+        <!-- Tab 1: Dashboard (Home) -->
         <LinearLayout
+            android:id="@+id/navTabDashboard"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true">
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="📊"
+                android:text="🏠"
                 android:textSize="16sp" />
+
             <TextView
+                android:id="@+id/tvNavDashboard"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Monitor"
-                android:textColor="@color/accent_emerald"
-                android:textSize="10sp"
+                android:text="Dashboard"
+                android:textColor="@color/dock_icon_active"
+                android:textSize="9sp"
                 android:textStyle="bold"
                 android:layout_marginTop="2dp" />
         </LinearLayout>
 
-        <!-- Center Highlighted Action Squircle: Bypass Engine Tweak -->
-        <RelativeLayout
-            android:id="@+id/dockCenterAction"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/bg_center_action_squircle"
+        <!-- Tab 2: Apps (Bypass Selector) -->
+        <LinearLayout
+            android:id="@+id/navTabApps"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
             android:clickable="true"
             android:focusable="true">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📖"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/tvNavApps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bypass"
+                android:textColor="@color/dock_icon_inactive"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <!-- Center Highlighted Squircle: Instant Engine Bypass Action -->
+        <RelativeLayout
+            android:id="@+id/navCenterAction"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_center_squircle_coral"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp">
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -553,24 +751,59 @@
                 android:textStyle="bold" />
         </RelativeLayout>
 
-        <!-- Right Dock Item: Video Safe Status -->
+        <!-- Tab 3: Rate Controller -->
         <LinearLayout
+            android:id="@+id/navTabRate"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true">
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🛡️"
+                android:text="⭐"
                 android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/tvNavRate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rate"
+                android:textColor="@color/dock_icon_inactive"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <!-- Tab 4: Settings & System -->
+        <LinearLayout
+            android:id="@+id/navTabSettings"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true">
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Safe Video"
-                android:textColor="@color/text_muted"
-                android:textSize="10sp"
+                android:text="⚙️"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/tvNavSettings"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sistem"
+                android:textColor="@color/dock_icon_inactive"
+                android:textSize="9sp"
+                android:textStyle="bold"
                 android:layout_marginTop="2dp" />
         </LinearLayout>
 

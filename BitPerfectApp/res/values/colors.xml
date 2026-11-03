@@ -1,38 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Material You Dark Glass Canvas & Surfaces -->
-    <color name="bg_canvas">#0a0d14</color>
-    <color name="glass_card_bg_start">#1c2232</color>
-    <color name="glass_card_bg_end">#121622</color>
-    <color name="glass_card_stroke">#323f56</color>
-    <color name="glass_tile_bg">#161c28</color>
-    <color name="glass_tile_stroke">#263144</color>
-    <color name="glass_divider">#20293a</color>
+    <!-- Warm Cream & Porcelain Theme (Exact Match to Mockup) -->
+    <color name="canvas_bg">#F3EDE4</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="card_border">#EAE2D5</color>
+    <color name="card_inner_bg">#FAF7F2</color>
 
-    <!-- Material You Accents -->
-    <color name="accent_emerald">#10b981</color>
-    <color name="accent_emerald_bg">#064e3b</color>
-    <color name="accent_emerald_stroke">#059669</color>
-    <color name="accent_amber">#f59e0b</color>
-    <color name="accent_amber_bg">#451a03</color>
-    <color name="accent_cyan">#38bdf8</color>
+    <!-- Warm Coral / Peach Accent (From Mockup Arc & Center Button) -->
+    <color name="accent_coral">#FF7B54</color>
+    <color name="accent_coral_light">#FFA27E</color>
+    <color name="accent_coral_subtle">#FCEFEA</color>
+    <color name="accent_coral_glow">#E65D33</color>
 
-    <!-- Typographic Hierarchy -->
-    <color name="text_primary">#f8fafc</color>
-    <color name="text_secondary">#94a3b8</color>
-    <color name="text_muted">#64748b</color>
-    <color name="text_emerald">#34d399</color>
-    <color name="text_amber">#fbbf24</color>
+    <!-- Arc Segments -->
+    <color name="arc_segment_active">#FF7B54</color>
+    <color name="arc_segment_inactive">#EADFCF</color>
 
-    <!-- Chips & Buttons -->
-    <color name="chip_active_bg">#13382c</color>
-    <color name="chip_active_stroke">#10b981</color>
-    <color name="chip_inactive_bg">#151b27</color>
-    <color name="chip_inactive_stroke">#263245</color>
-    <color name="btn_glass_bg">#18202d</color>
-    <color name="btn_glass_stroke">#2a364a</color>
-    <color name="btn_glass_active_bg">#0e4433</color>
-    <color name="btn_glass_active_stroke">#10b981</color>
-    <color name="btn_danger_bg">#2b1216</color>
-    <color name="btn_danger_text">#f87171</color>
+    <!-- Status Accents -->
+    <color name="accent_emerald">#10B981</color>
+    <color name="accent_amber">#F59E0B</color>
+    <color name="accent_slate">#9E9A93</color>
+
+    <!-- Typography -->
+    <color name="text_title">#18191D</color>
+    <color name="text_body">#4A4947</color>
+    <color name="text_muted">#8A8782</color>
+    <color name="text_hint">#B3ADA5</color>
+
+    <!-- Floating Dock -->
+    <color name="dock_bg">#1D1F24</color>
+    <color name="dock_icon_inactive">#8F8F94</color>
+    <color name="dock_icon_active">#FF7B54</color>
+
+    <!-- Interactive Elements -->
+    <color name="pill_btn_bg">#EFE9DF</color>
+    <color name="chip_active_bg">#FFECE5</color>
+    <color name="chip_active_stroke">#FF7B54</color>
+    <color name="chip_inactive_bg">#FFFFFF</color>
+    <color name="chip_inactive_stroke">#E5DDD0</color>
+
+    <!-- Compatibility Aliases -->
+    <color name="bg_canvas">#F3EDE4</color>
+    <color name="text_primary">#18191D</color>
+    <color name="text_secondary">#8A8782</color>
 </resources>
