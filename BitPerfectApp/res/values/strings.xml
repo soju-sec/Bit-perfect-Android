@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BitPerfect Monitor</string>
+    <string name="title_app">BitPerfect Monitor</string>
+    <string name="status_bitperfect">BIT-PERFECT</string>
+    <string name="status_standby">STANDBY</string>
+    <string name="label_source_rate">Rate sumber</string>
+    <string name="label_dac_rate">Rate ke DAC</string>
+    <string name="label_format">Format</string>
+    <string name="label_dac">DAC</string>
+    <string name="label_auto_switch">Ikuti rate sumber otomatis</string>
+    <string name="desc_auto_switch">Musik jeda ±4 detik saat pindah, supaya tidak bocor ke speaker</string>
+    <string name="title_mode">Mode audio policy</string>
+    <string name="desc_mode">Bypass (safer) menulis rate eksplisit — ini yang mengikuti lagu, dan satu-satunya jalur di MTK, Exynos, dan Snapdragon lama. Offload lewat ADSP — di Snapdragon baru tembus sampai 384 kHz, di luar itu bisa jadi kresek.</string>
+    <string name="mode_bypass">Bypass (safer)</string>
+    <string name="mode_offload">Offload (ADSP)</string>
+    <string name="footer_note">Flag BitPerfect track: false. Nilai false itu normal — MIXER_BEHAVIOR_BIT_PERFECT memang tidak pernah diminta pemutar musik.</string>
+</resources>

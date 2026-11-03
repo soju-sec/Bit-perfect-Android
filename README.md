@@ -45,7 +45,31 @@ Modul KernelSU / KowSU / Magisk / APatch untuk **mem-bypass resampling paksa 48k
 - **OS / ROM**: RisingOS (Android 15 / SDK 35)
 - **Root Solution**: KowSU UAPI 5 (`com.kowx712.supermanager`) / KernelSU v3.x / APatch / Magisk
 - **External DAC Tested**: **Kiwi Ears AD1** (USB-C Audio DAC, 2-Channel Stereo, 44.1k–384k PCM, 16/24/32-bit)
-- **Aplikasi Uji**: Apple Music (v4.9+) & TIDAL (v2.120+)
+- **Aplikasi Uji**: Apple Music (v4.9+), TIDAL (v2.120+), Bitchord
+
+---
+
+## 📱 BitPerfect Monitor (Aplikasi Android Standalone)
+
+Selain modul Magisk/KernelSU, kini tersedia aplikasi **BitPerfect Monitor** (`BitPerfectMonitor.apk`) yang dirancang khusus untuk kontrol sample rate secara fleksibel dan on-demand tanpa merusak sinkronisasi audio-video sistem!
+
+### ❓ Mengapa Video Sempat Patah-patah pada Modul Global?
+1. **Eksklusivitas Direct PCM**: Modul global memaksa audio media ke thread `type 1 (DIRECT)`. Thread Direct di AudioFlinger **tidak mendukung mixing**, hanya bisa memproses 1 stream tunggal.
+2. **Desinkronisasi Frame ExoPlayer (PTS)**: Pemutar video (YouTube, TikTok, Instagram, browser) menyelaraskan tampilan frame video langsung dengan jam audio (*Presentation Timestamp / PTS* via `AudioTrack.getTimestamp()`).
+3. Saat audio masuk ke jalur Direct PCM tanpa buffer mixer bersama, suara klik sistem, notifikasi, atau seek video menyebabkan stream underrun. Mesin video langsung menahan/membuang frame video karena menunggu jam audio, menyebabkan **video patah-patah / stutter parah**.
+
+### 💡 Keunggulan BitPerfect Monitor:
+- 🎬 **Video Tetap 100% Mulus**: Aplikasi video, game, dan sistem tetap berjalan di jalur mixer standar 48 kHz sehingga sinkronisasi video dan multi-audio mixing tetap sempurna.
+- 🎧 **Fleksibel & Otomatis untuk Musik**: Fitur **"Ikuti rate sumber otomatis"** memantau aplikasi musik (Apple Music, TIDAL, Bitchord, Spotify) dan hanya mengubah frekuensi DAC hardware saat musik Hi-Res diputar.
+- 🛡️ **Proteksi Kebocoran Speaker**: Musik otomatis dijeda ±4 detik saat perpindahan frekuensi agar suara tidak bocor ke speaker HP saat DAC melakukan re-clocking.
+- 🎛️ **Manual Switcher Instan**: Tombol cepat untuk `8 kHz`, `16 kHz`, `32 kHz`, `44.1 kHz`, `48 kHz`, `96 kHz`, `192 kHz`, `384 kHz`, dan `Reset`.
+- ⚡ **Dual Engine**: Menggunakan API Android 14+ `AudioManager.setPreferredMixerAttributes` serta fallback Root (`su`).
+
+### 📥 Pemasangan APK:
+Install langsung file [`BitPerfectMonitor.apk`](BitPerfectMonitor.apk) di HP Anda:
+```bash
+adb install -r BitPerfectMonitor.apk
+```
 
 ---
 

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_dark">#121316</color>
+    <color name="bg_card">#1a1c21</color>
+    <color name="bg_pill_inactive">#26282f</color>
+    <color name="bg_pill_active">#15803d</color>
+    <color name="bg_badge_bitperfect">#16a34a</color>
+    <color name="bg_badge_standby">#475569</color>
+    <color name="text_primary">#f8fafc</color>
+    <color name="text_secondary">#94a3b8</color>
+    <color name="text_muted">#64748b</color>
+    <color name="text_green">#4ade80</color>
+</resources>

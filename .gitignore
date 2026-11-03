@@ -4,3 +4,12 @@ page.html
 *.bak
 *.tmp
 .DS_Store
+
+# Android App Build Artifacts
+BitPerfectApp/build/
+BitPerfectApp/compiled_res.zip
+BitPerfectApp/unaligned.apk
+BitPerfectApp/aligned.apk
+BitPerfectApp/classes.dex
+BitPerfectApp/debug.keystore
+*.idsig
