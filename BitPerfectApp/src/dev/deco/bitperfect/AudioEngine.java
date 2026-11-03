@@ -1,6 +1,7 @@
 package dev.deco.bitperfect;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.media.AudioAttributes;
 import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
@@ -8,16 +9,24 @@ import android.media.AudioManager;
 import android.media.AudioMixerAttributes;
 import android.os.SystemClock;
 import android.util.Log;
-import android.view.KeyEvent;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 public class AudioEngine {
     private static final String TAG = "BitPerfect_AudioEngine";
+    private static final String PREF_NAME = "bitperfect_prefs";
+    private static final String PREF_BYPASS_APPS = "bypassed_packages";
+
+    public static final String PKG_APPLE_MUSIC = "com.apple.android.music";
+    public static final String PKG_TIDAL = "com.aspiro.tidal";
+    public static final String PKG_BITCHORD = "com.music.bitchord";
+    public static final String PKG_SPOTIFY = "com.spotify.music";
+    public static final String PKG_YT_MUSIC = "com.google.android.apps.youtube.music";
 
     public static AudioDeviceInfo getUsbDevice(Context context) {
         AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
@@ -35,7 +44,7 @@ public class AudioEngine {
     public static AudioStatus pollStatus(Context context) {
         AudioStatus status = new AudioStatus();
 
-        // 1. Detect USB Hardware DAC
+        // 1. Detect USB Hardware DAC Device
         AudioDeviceInfo usbDev = getUsbDevice(context);
         if (usbDev != null) {
             status.dacName = usbDev.getProductName().toString();
@@ -43,15 +52,30 @@ public class AudioEngine {
             status.dacName = readAlsaDacName();
         }
 
-        // 2. Hardware DAC Clock from ALSA stream0
+        // 2. Hardware DAC Clock & Format from ALSA stream0
         readAlsaStreamStatus(status);
 
-        // 3. AudioFlinger & MediaSession analysis via shell/dumpsys if available
+        // 3. AudioFlinger & Active Media Session Telemetry
         readAudioFlingerStatus(status);
 
-        // 4. Bit-Perfect verification
-        if (status.sourceRate > 0 && status.dacRate > 0 && status.sourceRate == status.dacRate) {
-            status.isBitPerfect = true;
+        // 4. Check Per-App Bypass Status
+        status.isAppBypassed = isAppBypassed(context, status.activePkg);
+
+        // 5. Evaluate Route & Bit-Perfect State
+        if (status.routeType.equals("DIRECT_PCM")) {
+            if (status.sourceRate > 0 && status.sourceRate == status.dacRate) {
+                status.isBitPerfect = true;
+                status.matchStatus = "Penyelarasan Jam: 1:1 Murni (Zero SRC / Tanpa Resample)";
+            } else if (status.sourceRate > 0) {
+                status.isBitPerfect = false;
+                status.matchStatus = "Direct PCM Aktif (Sinkronisasi Clock Berlangsung)";
+            }
+        } else if (status.routeType.equals("MIXER")) {
+            status.isBitPerfect = false;
+            status.matchStatus = "Terkunci di 48 kHz oleh mixer Android (Mixer Active)";
+        } else {
+            status.isBitPerfect = false;
+            status.matchStatus = "Standby • Menunggu Pemutaran Audio";
         }
 
         return status;
@@ -79,6 +103,8 @@ public class AudioEngine {
                 try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(f)))) {
                     String line;
                     boolean isPlayback = false;
+                    String altset = "";
+                    String fmtStr = "";
                     while ((line = br.readLine()) != null) {
                         line = line.trim();
                         if (line.startsWith("Playback:")) {
@@ -87,6 +113,12 @@ public class AudioEngine {
                             isPlayback = false;
                         }
                         if (isPlayback) {
+                            if (line.startsWith("Altset")) {
+                                altset = line;
+                            }
+                            if (line.startsWith("Format:")) {
+                                fmtStr = line.replace("Format:", "").trim();
+                            }
                             if (line.startsWith("Rate:") || line.startsWith("Momentary freq =")) {
                                 String rateStr = line.replaceAll("[^0-9]", "");
                                 if (!rateStr.isEmpty()) {
@@ -95,13 +127,13 @@ public class AudioEngine {
                                     } catch (Exception ignored) {}
                                 }
                             }
-                            if (line.startsWith("Format:")) {
-                                String fmt = line.replace("Format:", "").trim();
-                                if (fmt.contains("S24")) status.format = "PCM_24_BIT";
-                                else if (fmt.contains("S32")) status.format = "PCM_32_BIT";
-                                else if (fmt.contains("S16")) status.format = "PCM_16_BIT";
-                            }
                         }
+                    }
+                    if (!fmtStr.isEmpty()) {
+                        status.dacFormat = fmtStr + (altset.isEmpty() ? "" : " • " + altset);
+                        if (fmtStr.contains("S24")) status.format = "PCM_24_BIT";
+                        else if (fmtStr.contains("S32")) status.format = "PCM_32_BIT";
+                        else if (fmtStr.contains("S16")) status.format = "PCM_16_BIT";
                     }
                 } catch (Exception ignored) {}
                 break;
@@ -111,7 +143,7 @@ public class AudioEngine {
 
     private static void readAudioFlingerStatus(AudioStatus status) {
         try {
-            // Read active media session package name
+            // Read active media session package
             String sessionDump = runShellCommand("dumpsys media_session");
             if (sessionDump != null) {
                 for (String line : sessionDump.split("\n")) {
@@ -126,72 +158,147 @@ public class AudioEngine {
                 }
             }
 
-            // Read AudioFlinger direct & mixer rates
+            // Read AudioFlinger direct & mixer threads
             String afDump = runShellCommand("dumpsys media.audio_flinger");
             if (afDump != null) {
                 boolean inDirect = false;
                 boolean inMixer = false;
+                boolean directStandbyNo = false;
+                boolean mixerStandbyNo = false;
+
                 for (String line : afDump.split("\n")) {
-                    line = line.trim();
-                    if (line.contains("Output thread") && line.contains("type 1 (DIRECT)")) {
+                    String trimmed = line.trim();
+                    if (trimmed.contains("Output thread") && trimmed.contains("type 1 (DIRECT)")) {
                         inDirect = true;
                         inMixer = false;
-                        status.isDirectPcm = true;
-                    } else if (line.contains("Output thread") && line.contains("type 0 (MIXER)")) {
+                    } else if (trimmed.contains("Output thread") && trimmed.contains("type 0 (MIXER)")) {
                         inMixer = true;
                         inDirect = false;
-                    } else if (line.contains("Output thread")) {
+                    } else if (trimmed.contains("Output thread")) {
                         inDirect = false;
                         inMixer = false;
                     }
 
-                    if (inDirect && line.startsWith("Sample rate:")) {
-                        String sr = line.replaceAll("[^0-9]", "");
-                        if (!sr.isEmpty()) {
-                            int r = Integer.parseInt(sr);
-                            status.sourceRate = r;
-                            if (status.dacRate == 0) status.dacRate = r;
+                    if (inDirect) {
+                        if (trimmed.contains("Standby: no")) {
+                            directStandbyNo = true;
                         }
-                    } else if (inMixer && line.startsWith("Sample rate:") && status.sourceRate == 0) {
-                        String sr = line.replaceAll("[^0-9]", "");
-                        if (!sr.isEmpty()) {
-                            int r = Integer.parseInt(sr);
-                            status.sourceRate = r;
-                            if (status.dacRate == 0) status.dacRate = r;
+                        if (trimmed.startsWith("Sample rate:")) {
+                            String sr = trimmed.replaceAll("[^0-9]", "");
+                            if (!sr.isEmpty()) {
+                                status.sourceRate = Integer.parseInt(sr);
+                            }
+                        }
+                        if (trimmed.contains("HAL format:")) {
+                            if (trimmed.contains("0x6") || trimmed.contains("24_BIT")) {
+                                status.sourceBitDepth = "24-bit";
+                            } else if (trimmed.contains("0x3") || trimmed.contains("32_BIT")) {
+                                status.sourceBitDepth = "32-bit";
+                            } else {
+                                status.sourceBitDepth = "16-bit";
+                            }
+                        }
+                    } else if (inMixer) {
+                        if (trimmed.contains("Standby: no")) {
+                            mixerStandbyNo = true;
+                        }
+                        if (trimmed.startsWith("Sample rate:") && status.sourceRate == 0) {
+                            String sr = trimmed.replaceAll("[^0-9]", "");
+                            if (!sr.isEmpty()) {
+                                status.sourceRate = Integer.parseInt(sr);
+                            }
                         }
                     }
                 }
+
+                if (directStandbyNo) {
+                    status.routeType = "DIRECT_PCM";
+                } else if (mixerStandbyNo) {
+                    status.routeType = "MIXER";
+                } else {
+                    status.routeType = "STANDBY";
+                }
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error reading AudioFlinger status", e);
+            Log.e(TAG, "Error in AudioFlinger status parser", e);
         }
     }
 
     public static String getFriendlyAppName(String pkg) {
-        if (pkg == null) return "None";
-        if (pkg.contains("tidal")) return "TIDAL";
+        if (pkg == null || pkg.isEmpty()) return "None";
         if (pkg.contains("apple") && pkg.contains("music")) return "Apple Music";
-        if (pkg.contains("spotify")) return "Spotify";
-        if (pkg.contains("qobuz")) return "Qobuz";
+        if (pkg.contains("tidal")) return "TIDAL";
         if (pkg.contains("bitchord")) return "Bitchord";
-        if (pkg.contains("poweramp")) return "Poweramp";
-        if (pkg.contains("youtube") && pkg.contains("music")) return "YT Music";
+        if (pkg.contains("spotify")) return "Spotify";
+        if (pkg.contains("youtube.music")) return "YouTube Music";
         if (pkg.contains("youtube")) return "YouTube";
+        if (pkg.contains("tiktok")) return "TikTok";
+        if (pkg.contains("instagram")) return "Instagram";
+        if (pkg.contains("netflix")) return "Netflix";
         return pkg;
     }
 
-    public static boolean isMusicApp(String pkg) {
+    public static boolean isAppBypassed(Context context, String pkg) {
         if (pkg == null || pkg.isEmpty()) return false;
-        String lower = pkg.toLowerCase();
-        return lower.contains("music") || lower.contains("tidal") || lower.contains("bitchord") ||
-               lower.contains("qobuz") || lower.contains("spotify") || lower.contains("deezer") ||
-               lower.contains("poweramp") || lower.contains("neutron") || lower.contains("hiby");
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        Set<String> set = prefs.getStringSet(PREF_BYPASS_APPS, null);
+        if (set == null) {
+            // Default bypassed apps
+            return pkg.equals(PKG_APPLE_MUSIC) || pkg.equals(PKG_TIDAL) || pkg.equals(PKG_BITCHORD);
+        }
+        return set.contains(pkg);
     }
 
-    public static boolean setDacRate(Context context, int targetRate, boolean isOffload, boolean safePause) {
-        Log.i(TAG, "setDacRate: " + targetRate + " Hz, isOffload=" + isOffload + ", safePause=" + safePause);
+    public static void setAppBypassed(Context context, String pkg, boolean enabled) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        Set<String> set = prefs.getStringSet(PREF_BYPASS_APPS, null);
+        Set<String> newSet = new HashSet<>();
+        if (set != null) {
+            newSet.addAll(set);
+        } else {
+            newSet.add(PKG_APPLE_MUSIC);
+            newSet.add(PKG_TIDAL);
+            newSet.add(PKG_BITCHORD);
+        }
+        if (enabled) {
+            newSet.add(pkg);
+        } else {
+            newSet.remove(pkg);
+        }
+        prefs.edit().putStringSet(PREF_BYPASS_APPS, newSet).apply();
+    }
 
-        // 1. Safe Pause Protection (Musik jeda ±4 detik saat pindah, supaya tidak bocor ke speaker)
+    public static boolean applyEngineTweaks(Context context) {
+        Log.i(TAG, "Applying Audio HAL Engine Tweaks via Root...");
+        StringBuilder cmds = new StringBuilder();
+        cmds.append("resetprop -n vendor.audio.feature.usb_offload.enable true\n");
+        cmds.append("resetprop -n vendor.audio.usb.super_high_res true\n");
+        cmds.append("resetprop -n persist.vendor.audio.samplerates 44100,48000,88200,96000,176400,192000,352800,384000\n");
+        cmds.append("resetprop -n persist.vendor.audio.format.24bit true\n");
+        cmds.append("resetprop -n persist.vendor.audio_hal.dsp_bit_width_enforce_mode 24\n");
+        cmds.append("resetprop -n af.fast_track_multiplier 2\n");
+        cmds.append("resetprop -n vendor.audio.feature.usb_offload_burst_mode.enable false\n");
+        cmds.append("resetprop -n ro.audio.flinger_standbytime_ms 1000\n");
+        
+        String out = runRootCommand(cmds.toString());
+        return out != null;
+    }
+
+    public static boolean isModuleInstalled() {
+        File f1 = new File("/data/adb/modules/disable_resample_48k");
+        return f1.exists();
+    }
+
+    public static boolean uninstallMagiskModule() {
+        Log.i(TAG, "Uninstalling / removing Magisk module disable_resample_48k...");
+        String cmd = "rm -rf /data/adb/modules/disable_resample_48k && touch /data/adb/modules/disable_resample_48k/remove 2>/dev/null";
+        runRootCommand(cmd);
+        return !isModuleInstalled();
+    }
+
+    public static boolean setDacRate(Context context, int targetRate, boolean safePause) {
+        Log.i(TAG, "setDacRate: " + targetRate + " Hz, safePause=" + safePause);
+
         if (safePause) {
             dispatchMediaKey("127"); // KEYCODE_MEDIA_PAUSE
             SystemClock.sleep(3500);
@@ -199,7 +306,7 @@ public class AudioEngine {
 
         boolean success = false;
 
-        // 2. Try Native Android 14+ setPreferredMixerAttributes
+        // Try Native Android 14+ setPreferredMixerAttributes
         try {
             AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             AudioDeviceInfo usbDev = getUsbDevice(context);
@@ -224,14 +331,11 @@ public class AudioEngine {
                             .build();
 
                     success = am.setPreferredMixerAttributes(mediaAttrs, usbDev, mixerAttr);
-                    Log.i(TAG, "Native setPreferredMixerAttributes result: " + success);
                 }
             }
-        } catch (Exception e) {
-            Log.w(TAG, "Native API failed, falling back to shell", e);
-        }
+        } catch (Exception ignored) {}
 
-        // 3. Root / Shell Fallback (if native failed or root requested)
+        // Root fallback
         if (!success) {
             try {
                 if (targetRate == 0) {
@@ -241,11 +345,10 @@ public class AudioEngine {
                 }
                 success = true;
             } catch (Exception e) {
-                Log.e(TAG, "Root command execution error", e);
+                Log.e(TAG, "Root fallback error", e);
             }
         }
 
-        // 4. Resume Playback
         if (safePause) {
             SystemClock.sleep(500);
             dispatchMediaKey("126"); // KEYCODE_MEDIA_PLAY
@@ -278,7 +381,10 @@ public class AudioEngine {
 
     private static String runRootCommand(String cmd) {
         try {
-            Process process = Runtime.getRuntime().exec(new String[]{"su", "-c", cmd});
+            Process process = Runtime.getRuntime().exec("su");
+            java.io.DataOutputStream os = new java.io.DataOutputStream(process.getOutputStream());
+            os.writeBytes(cmd + "\nexit\n");
+            os.flush();
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             StringBuilder sb = new StringBuilder();
             String line;
@@ -288,6 +394,7 @@ public class AudioEngine {
             process.waitFor();
             return sb.toString();
         } catch (Exception e) {
+            Log.e(TAG, "runRootCommand error", e);
             return null;
         }
     }
