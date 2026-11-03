@@ -11,6 +11,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class BitPerfectService extends Service {
     private static final String TAG = "BitPerfectService";
@@ -18,6 +20,7 @@ public class BitPerfectService extends Service {
     public static final String ACTION_STATUS_UPDATE = "dev.deco.bitperfect.STATUS_UPDATE";
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
+    private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
     private boolean mRunning = false;
     private int mLastSourceRate = 0;
     private boolean mIsAutoSwitch = true;
@@ -27,39 +30,46 @@ public class BitPerfectService extends Service {
         @Override
         public void run() {
             if (!mRunning) return;
-            AudioStatus status = AudioEngine.pollStatus(BitPerfectService.this);
+            mExecutor.execute(() -> {
+                try {
+                    AudioStatus status = AudioEngine.pollStatus(BitPerfectService.this);
 
-            // Broadcast status to UI
-            Intent intent = new Intent(ACTION_STATUS_UPDATE);
-            intent.setPackage(getPackageName());
-            intent.putExtra("isDacConnected", status.isDacConnected);
-            intent.putExtra("sourceRate", status.sourceRate);
-            intent.putExtra("sourceBitDepth", status.sourceBitDepth);
-            intent.putExtra("dacRate", status.dacRate);
-            intent.putExtra("dacFormat", status.dacFormat);
-            intent.putExtra("dacName", status.dacName);
-            intent.putExtra("routeType", status.routeType);
-            intent.putExtra("isBitPerfect", status.isBitPerfect);
-            intent.putExtra("activeApp", status.activeApp);
-            intent.putExtra("activePkg", status.activePkg);
-            intent.putExtra("trackInfo", status.trackInfo);
-            intent.putExtra("isAppBypassed", status.isAppBypassed);
-            intent.putExtra("matchStatus", status.matchStatus);
-            sendBroadcast(intent);
+                    // Broadcast status to UI
+                    Intent intent = new Intent(ACTION_STATUS_UPDATE);
+                    intent.setPackage(getPackageName());
+                    intent.putExtra("isDacConnected", status.isDacConnected);
+                    intent.putExtra("sourceRate", status.sourceRate);
+                    intent.putExtra("sourceBitDepth", status.sourceBitDepth);
+                    intent.putExtra("dacRate", status.dacRate);
+                    intent.putExtra("dacFormat", status.dacFormat);
+                    intent.putExtra("dacName", status.dacName);
+                    intent.putExtra("routeType", status.routeType);
+                    intent.putExtra("isBitPerfect", status.isBitPerfect);
+                    intent.putExtra("activeApp", status.activeApp);
+                    intent.putExtra("activePkg", status.activePkg);
+                    intent.putExtra("trackInfo", status.trackInfo);
+                    intent.putExtra("isAppBypassed", status.isAppBypassed);
+                    intent.putExtra("matchStatus", status.matchStatus);
+                    sendBroadcast(intent);
 
-            // Per-App Auto Bypass Alignment
-            if (mIsAutoSwitch && status.isAppBypassed) {
-                if (status.sourceRate > 0 && status.sourceRate != mLastSourceRate && status.sourceRate != status.dacRate) {
-                    mLastSourceRate = status.sourceRate;
-                    Log.i(TAG, "Auto-aligning DAC Clock for " + status.activeApp + ": " + status.sourceRate + " Hz");
-                    new Thread(() -> {
-                        AudioEngine.setDacRate(BitPerfectService.this, status.sourceRate, false);
-                    }).start();
+                    // Per-App Auto Bypass Alignment
+                    if (mIsAutoSwitch && status.isAppBypassed) {
+                        if (status.sourceRate > 0 && status.sourceRate != mLastSourceRate && status.sourceRate != status.dacRate) {
+                            mLastSourceRate = status.sourceRate;
+                            Log.i(TAG, "Auto-aligning DAC Clock for " + status.activeApp + ": " + status.sourceRate + " Hz");
+                            AudioEngine.setDacRate(BitPerfectService.this, status.sourceRate, false);
+                        }
+                    }
+
+                    updateNotification(status);
+                } catch (Exception e) {
+                    Log.e(TAG, "Error in poll runnable", e);
+                } finally {
+                    if (mRunning) {
+                        mHandler.postDelayed(mPollRunnable, 1000);
+                    }
                 }
-            }
-
-            updateNotification(status);
-            mHandler.postDelayed(this, 1500);
+            });
         }
     };
 
@@ -91,6 +101,9 @@ public class BitPerfectService extends Service {
     public void onDestroy() {
         mRunning = false;
         mHandler.removeCallbacks(mPollRunnable);
+        try {
+            mExecutor.shutdownNow();
+        } catch (Exception ignored) {}
         super.onDestroy();
     }
 

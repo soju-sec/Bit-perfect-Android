@@ -7,6 +7,8 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.drawable.Drawable;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
 import android.media.AudioAttributes;
 import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
@@ -65,19 +67,64 @@ public class AudioEngine {
     public static AudioStatus pollStatus(Context context) {
         AudioStatus status = new AudioStatus();
 
-        // 1. Detect USB Hardware DAC Device (via AudioManager & ALSA)
-        AudioDeviceInfo usbDev = getUsbDevice(context);
-        String alsaDac = readAlsaDacName();
-        boolean hasAlsaUsb = readAlsaStreamStatus(status);
+        // 1. Multi-Layer USB Hardware DAC Detection
+        // Layer A: Android UsbManager (Framework API - Instant & 100% reliable)
+        try {
+            UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+            if (usbManager != null) {
+                Map<String, UsbDevice> devList = usbManager.getDeviceList();
+                if (devList != null) {
+                    for (UsbDevice dev : devList.values()) {
+                        boolean isAudio = (dev.getDeviceClass() == 1 || dev.getDeviceClass() == 0 || dev.getDeviceClass() == 239);
+                        for (int j = 0; j < dev.getInterfaceCount(); j++) {
+                            if (dev.getInterface(j).getInterfaceClass() == 1) { // USB Audio Class
+                                isAudio = true;
+                                break;
+                            }
+                        }
+                        if (isAudio) {
+                            status.isDacConnected = true;
+                            String pName = dev.getProductName();
+                            String mName = dev.getManufacturerName();
+                            if (pName != null && !pName.isEmpty()) {
+                                status.dacName = (mName != null && !mName.isEmpty() && !pName.contains(mName)) ? (mName + " " + pName) : pName;
+                            } else if (mName != null && !mName.isEmpty()) {
+                                status.dacName = mName;
+                            } else {
+                                status.dacName = "USB Audio DAC";
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
 
+        // Layer B: AudioManager USB Output Device
+        AudioDeviceInfo usbDev = getUsbDevice(context);
         if (usbDev != null) {
             status.isDacConnected = true;
-            status.dacName = usbDev.getProductName().toString();
-        } else if (hasAlsaUsb && alsaDac != null) {
+            if (status.dacName.isEmpty() || status.dacName.equals("USB Audio DAC")) {
+                CharSequence pName = usbDev.getProductName();
+                if (pName != null && pName.length() > 0) {
+                    status.dacName = pName.toString();
+                }
+            }
+        }
+
+        // Layer C: Privileged ALSA Cards & Stream Telemetry
+        String alsaDac = readAlsaDacName();
+        boolean hasAlsaUsb = readAlsaStreamStatus(status);
+        if (hasAlsaUsb || alsaDac != null) {
             status.isDacConnected = true;
-            status.dacName = alsaDac;
-        } else {
-            status.isDacConnected = false;
+            if (status.dacName.isEmpty() || status.dacName.equals("USB Audio DAC")) {
+                if (alsaDac != null && !alsaDac.isEmpty()) {
+                    status.dacName = alsaDac;
+                }
+            }
+        }
+
+        if (!status.isDacConnected) {
             status.dacName = "Tidak Ada DAC USB";
         }
 
@@ -126,97 +173,88 @@ public class AudioEngine {
             status.matchStatus = "Audio Aktif di Speaker HP (Bukan ke DAC USB)";
         } else {
             status.isBitPerfect = false;
-            status.dacRate = 0;
-            status.dacFormat = "Standby (Audio Idle)";
-            status.matchStatus = "Standby • Menunggu Pemutaran Audio";
+            if (status.dacRate == 0) {
+                status.dacFormat = "Standby (DAC Siap)";
+            }
+            status.matchStatus = "DAC USB Siap • Menunggu Pemutaran Audio";
         }
 
         return status;
     }
 
     private static String readAlsaDacName() {
-        // Universal parser: scan /proc/asound/cards for USB-Audio
-        File cardsFile = new File("/proc/asound/cards");
-        if (cardsFile.exists()) {
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(cardsFile)))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    if (line.contains("USB-Audio") || line.contains("USB Audio")) {
-                        String[] parts = line.split(" - ");
-                        if (parts.length > 1 && !parts[1].trim().isEmpty()) {
-                            return parts[1].trim();
-                        }
+        // Universal parser: scan /proc/asound/cards via privileged command (handles SELinux)
+        String cards = runPrivilegedCommand("cat /proc/asound/cards 2>/dev/null");
+        if (cards != null && !cards.trim().isEmpty()) {
+            for (String rawLine : cards.split("\n")) {
+                String line = rawLine.trim();
+                if (line.contains("USB-Audio") || line.contains("USB Audio")) {
+                    String[] parts = line.split(" - ");
+                    if (parts.length > 1 && !parts[1].trim().isEmpty()) {
+                        return parts[1].trim();
                     }
                 }
-            } catch (Exception ignored) {}
-        }
-
-        // Scan card0 to card7 stream0 line 1
-        for (int i = 0; i <= 7; i++) {
-            File f = new File("/proc/asound/card" + i + "/stream0");
-            if (f.exists()) {
-                try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(f)))) {
-                    String line = br.readLine();
-                    if (line != null && !line.trim().isEmpty()) {
-                        return line.replaceAll(" at .*", "").trim();
-                    }
-                } catch (Exception ignored) {}
             }
         }
+
+        // Sysfs fallback
+        String sysfsProduct = runPrivilegedCommand("cat /sys/bus/usb/devices/*-1/product 2>/dev/null");
+        if (sysfsProduct != null && !sysfsProduct.trim().isEmpty()) {
+            String prod = sysfsProduct.trim().split("\n")[0].trim();
+            if (!prod.isEmpty()) return prod;
+        }
+
         return null;
     }
 
     private static boolean readAlsaStreamStatus(AudioStatus status) {
         boolean found = false;
         for (int i = 0; i <= 7; i++) {
-            File f = new File("/proc/asound/card" + i + "/stream0");
-            if (f.exists()) {
+            String streamContent = runPrivilegedCommand("cat /proc/asound/card" + i + "/stream0 2>/dev/null");
+            if (streamContent != null && streamContent.contains("Playback:")) {
                 found = true;
-                try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(f)))) {
-                    String line;
-                    boolean isPlayback = false;
-                    boolean isRunning = false;
-                    String altset = "";
-                    String fmtStr = "";
-                    int momentaryRate = 0;
-                    while ((line = br.readLine()) != null) {
-                        line = line.trim();
-                        if (line.startsWith("Playback:")) {
-                            isPlayback = true;
-                        } else if (line.startsWith("Capture:")) {
-                            isPlayback = false;
+                boolean isPlayback = false;
+                boolean isRunning = false;
+                String altset = "";
+                String fmtStr = "";
+                int momentaryRate = 0;
+                for (String rawLine : streamContent.split("\n")) {
+                    String line = rawLine.trim();
+                    if (line.startsWith("Playback:")) {
+                        isPlayback = true;
+                    } else if (line.startsWith("Capture:")) {
+                        isPlayback = false;
+                    }
+                    if (isPlayback) {
+                        if (line.contains("Status: Running")) {
+                            isRunning = true;
                         }
-                        if (isPlayback) {
-                            if (line.contains("Status: Running")) {
-                                isRunning = true;
-                            }
-                            if (line.startsWith("Altset")) {
-                                altset = line;
-                            }
-                            if (line.startsWith("Format:")) {
-                                fmtStr = line.replace("Format:", "").trim();
-                            }
-                            if (line.startsWith("Rate:") || line.startsWith("Momentary freq =")) {
-                                String rateStr = line.replaceAll("[^0-9]", "");
-                                if (!rateStr.isEmpty()) {
-                                    try {
-                                        momentaryRate = Integer.parseInt(rateStr);
-                                    } catch (Exception ignored) {}
-                                }
+                        if (line.startsWith("Altset")) {
+                            altset = line;
+                        }
+                        if (line.startsWith("Format:")) {
+                            fmtStr = line.replace("Format:", "").trim();
+                        }
+                        if (line.startsWith("Rate:") || line.startsWith("Momentary freq =")) {
+                            String rateStr = line.replaceAll("[^0-9]", "");
+                            if (!rateStr.isEmpty()) {
+                                try {
+                                    momentaryRate = Integer.parseInt(rateStr);
+                                } catch (Exception ignored) {}
                             }
                         }
                     }
-                    if (isRunning && momentaryRate > 0) {
-                        status.dacRate = momentaryRate;
-                        status.dacFormat = fmtStr + (altset.isEmpty() ? "" : " • " + altset);
-                        if (fmtStr.contains("S24")) status.format = "PCM_24_BIT";
-                        else if (fmtStr.contains("S32")) status.format = "PCM_32_BIT";
-                        else if (fmtStr.contains("S16")) status.format = "PCM_16_BIT";
-                    } else {
-                        status.dacRate = 0;
-                        status.dacFormat = "Standby (DAC Idle)";
-                    }
-                } catch (Exception ignored) {}
+                }
+                if (isRunning && momentaryRate > 0) {
+                    status.dacRate = momentaryRate;
+                    status.dacFormat = fmtStr + (altset.isEmpty() ? "" : " • " + altset);
+                    if (fmtStr.contains("S24")) status.format = "PCM_24_BIT";
+                    else if (fmtStr.contains("S32")) status.format = "PCM_32_BIT";
+                    else if (fmtStr.contains("S16")) status.format = "PCM_16_BIT";
+                } else {
+                    status.dacRate = 0;
+                    status.dacFormat = "Standby (DAC Idle)";
+                }
                 break;
             }
         }
