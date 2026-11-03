@@ -44,30 +44,39 @@ public class AudioEngine {
     public static AudioStatus pollStatus(Context context) {
         AudioStatus status = new AudioStatus();
 
-        // 1. Detect USB Hardware DAC Device
+        // 1. Detect USB Hardware DAC Device (via AudioManager & ALSA)
         AudioDeviceInfo usbDev = getUsbDevice(context);
+        String alsaDac = readAlsaDacName();
+        boolean hasAlsaUsb = readAlsaStreamStatus(status);
+
         if (usbDev != null) {
+            status.isDacConnected = true;
             status.dacName = usbDev.getProductName().toString();
+        } else if (hasAlsaUsb && alsaDac != null) {
+            status.isDacConnected = true;
+            status.dacName = alsaDac;
         } else {
-            status.dacName = readAlsaDacName();
+            status.isDacConnected = false;
+            status.dacName = "Tidak Ada DAC USB";
         }
 
-        // 2. Hardware DAC Clock & Format from ALSA stream0
-        readAlsaStreamStatus(status);
-
-        // 3. AudioFlinger & Active Media Session Telemetry
+        // 2. AudioFlinger & Active Media Session Telemetry
         readAudioFlingerStatus(status);
 
-        // 4. Check Per-App Bypass Status
+        // 3. Check Per-App Bypass Status
         status.isAppBypassed = isAppBypassed(context, status.activePkg);
 
-        // 5. Evaluate Route & Bit-Perfect State
-        if (status.routeType.equals("DIRECT_PCM")) {
+        // 4. Evaluate Route & Bit-Perfect State
+        if (!status.isDacConnected) {
+            // DAC IS UNPLUGGED!
+            status.isBitPerfect = false;
+            status.dacRate = 0;
+            status.dacFormat = "DAC Terputus / Unplugged";
+            status.routeType = "DISCONNECTED";
+            status.matchStatus = "DAC USB Terputus • Sambungkan DAC untuk Memulai";
+        } else if (status.routeType.equals("DIRECT_PCM")) {
             if (status.dacRate == 0 && status.sourceRate > 0) {
                 status.dacRate = status.sourceRate;
-            }
-            if (status.dacFormat == null || status.dacFormat.isEmpty()) {
-                status.dacFormat = "PCM_24_BIT (S24_3LE)";
             }
             if (status.sourceRate > 0 && status.sourceRate == status.dacRate) {
                 status.isBitPerfect = true;
@@ -78,13 +87,17 @@ public class AudioEngine {
             }
         } else if (status.routeType.equals("MIXER")) {
             status.isBitPerfect = false;
+            status.dacRate = 48000;
             status.matchStatus = "Terkunci di 48 kHz oleh mixer Android (Mixer Active)";
-            if (status.dacRate == 0) status.dacRate = 48000;
-            if (status.dacFormat == null || status.dacFormat.isEmpty()) status.dacFormat = "PCM_16_BIT (Mixer)";
+        } else if (status.routeType.equals("SPEAKER")) {
+            status.isBitPerfect = false;
+            status.dacRate = 0;
+            status.matchStatus = "Audio Aktif di Speaker HP (Bukan ke DAC USB)";
         } else {
             status.isBitPerfect = false;
+            status.dacRate = 0;
+            status.dacFormat = "Standby (Audio Idle)";
             status.matchStatus = "Standby • Menunggu Pemutaran Audio";
-            if (status.dacFormat == null || status.dacFormat.isEmpty()) status.dacFormat = "PCM_24_BIT (Ready)";
         }
 
         return status;
@@ -96,24 +109,28 @@ public class AudioEngine {
             if (f.exists()) {
                 try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(f)))) {
                     String line = br.readLine();
-                    if (line != null) {
+                    if (line != null && !line.trim().isEmpty()) {
                         return line.replaceAll(" at .*", "").trim();
                     }
                 } catch (Exception ignored) {}
             }
         }
-        return "Kiwi Ears AD1";
+        return null;
     }
 
-    private static void readAlsaStreamStatus(AudioStatus status) {
+    private static boolean readAlsaStreamStatus(AudioStatus status) {
+        boolean found = false;
         for (int i = 0; i <= 3; i++) {
             File f = new File("/proc/asound/card" + i + "/stream0");
             if (f.exists()) {
+                found = true;
                 try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(f)))) {
                     String line;
                     boolean isPlayback = false;
+                    boolean isRunning = false;
                     String altset = "";
                     String fmtStr = "";
+                    int momentaryRate = 0;
                     while ((line = br.readLine()) != null) {
                         line = line.trim();
                         if (line.startsWith("Playback:")) {
@@ -122,6 +139,9 @@ public class AudioEngine {
                             isPlayback = false;
                         }
                         if (isPlayback) {
+                            if (line.contains("Status: Running")) {
+                                isRunning = true;
+                            }
                             if (line.startsWith("Altset")) {
                                 altset = line;
                             }
@@ -132,22 +152,27 @@ public class AudioEngine {
                                 String rateStr = line.replaceAll("[^0-9]", "");
                                 if (!rateStr.isEmpty()) {
                                     try {
-                                        status.dacRate = Integer.parseInt(rateStr);
+                                        momentaryRate = Integer.parseInt(rateStr);
                                     } catch (Exception ignored) {}
                                 }
                             }
                         }
                     }
-                    if (!fmtStr.isEmpty()) {
+                    if (isRunning && momentaryRate > 0) {
+                        status.dacRate = momentaryRate;
                         status.dacFormat = fmtStr + (altset.isEmpty() ? "" : " • " + altset);
                         if (fmtStr.contains("S24")) status.format = "PCM_24_BIT";
                         else if (fmtStr.contains("S32")) status.format = "PCM_32_BIT";
                         else if (fmtStr.contains("S16")) status.format = "PCM_16_BIT";
+                    } else {
+                        status.dacRate = 0;
+                        status.dacFormat = "Standby (DAC Idle)";
                     }
                 } catch (Exception ignored) {}
                 break;
             }
         }
+        return found;
     }
 
     private static void readAudioFlingerStatus(AudioStatus status) {
@@ -156,7 +181,7 @@ public class AudioEngine {
             String sessionDump = runShellCommand("dumpsys media_session");
             if (sessionDump != null) {
                 for (String line : sessionDump.split("\n")) {
-                    if (line.contains("package=")) {
+                    if (line.contains("package=") && !line.contains("telecom") && !line.contains("system")) {
                         String pkg = line.replaceAll(".*package=", "").trim();
                         if (!pkg.isEmpty()) {
                             status.activePkg = pkg;
@@ -173,7 +198,11 @@ public class AudioEngine {
                 boolean inDirect = false;
                 boolean inMixer = false;
                 boolean directStandbyNo = false;
+                boolean directToUsb = false;
                 boolean mixerStandbyNo = false;
+                boolean mixerToUsb = false;
+                int currentDirectRate = 0;
+                String currentDirectBitDepth = "16-bit";
 
                 for (String line : afDump.split("\n")) {
                     String trimmed = line.trim();
@@ -192,24 +221,30 @@ public class AudioEngine {
                         if (trimmed.contains("Standby: no")) {
                             directStandbyNo = true;
                         }
+                        if (trimmed.contains("Output devices:") && (trimmed.contains("USB") || trimmed.contains("0x4000000"))) {
+                            directToUsb = true;
+                        }
                         if (trimmed.startsWith("Sample rate:")) {
                             String sr = trimmed.replaceAll("[^0-9]", "");
                             if (!sr.isEmpty()) {
-                                status.sourceRate = Integer.parseInt(sr);
+                                currentDirectRate = Integer.parseInt(sr);
                             }
                         }
                         if (trimmed.contains("HAL format:")) {
                             if (trimmed.contains("0x6") || trimmed.contains("24_BIT")) {
-                                status.sourceBitDepth = "24-bit";
+                                currentDirectBitDepth = "24-bit";
                             } else if (trimmed.contains("0x3") || trimmed.contains("32_BIT")) {
-                                status.sourceBitDepth = "32-bit";
+                                currentDirectBitDepth = "32-bit";
                             } else {
-                                status.sourceBitDepth = "16-bit";
+                                currentDirectBitDepth = "16-bit";
                             }
                         }
                     } else if (inMixer) {
                         if (trimmed.contains("Standby: no")) {
                             mixerStandbyNo = true;
+                        }
+                        if (trimmed.contains("Output devices:") && (trimmed.contains("USB") || trimmed.contains("0x4000000"))) {
+                            mixerToUsb = true;
                         }
                         if (trimmed.startsWith("Sample rate:") && status.sourceRate == 0) {
                             String sr = trimmed.replaceAll("[^0-9]", "");
@@ -220,10 +255,14 @@ public class AudioEngine {
                     }
                 }
 
-                if (directStandbyNo) {
+                if (directStandbyNo && directToUsb) {
                     status.routeType = "DIRECT_PCM";
-                } else if (mixerStandbyNo) {
+                    status.sourceRate = currentDirectRate;
+                    status.sourceBitDepth = currentDirectBitDepth;
+                } else if (mixerStandbyNo && mixerToUsb) {
                     status.routeType = "MIXER";
+                } else if (directStandbyNo || mixerStandbyNo) {
+                    status.routeType = "SPEAKER";
                 } else {
                     status.routeType = "STANDBY";
                 }

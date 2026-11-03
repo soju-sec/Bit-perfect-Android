@@ -31,6 +31,8 @@ public class BitPerfectService extends Service {
 
             // Broadcast status to UI
             Intent intent = new Intent(ACTION_STATUS_UPDATE);
+            intent.setPackage(getPackageName());
+            intent.putExtra("isDacConnected", status.isDacConnected);
             intent.putExtra("sourceRate", status.sourceRate);
             intent.putExtra("sourceBitDepth", status.sourceBitDepth);
             intent.putExtra("dacRate", status.dacRate);
@@ -127,7 +129,9 @@ public class BitPerfectService extends Service {
 
     private void updateNotification(AudioStatus status) {
         String msg;
-        if (status.isBitPerfect) {
+        if (!status.isDacConnected) {
+            msg = "DAC Terputus • Sambungkan USB DAC";
+        } else if (status.isBitPerfect) {
             msg = "1:1 Bit-Perfect (" + (status.dacRate / 1000) + " kHz) • " + status.activeApp;
         } else if (status.dacRate > 0) {
             msg = "DAC: " + (status.dacRate / 1000) + " kHz • Track: " + (status.sourceRate / 1000) + " kHz (" + status.activeApp + ")";

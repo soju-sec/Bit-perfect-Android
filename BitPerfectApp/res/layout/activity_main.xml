@@ -146,7 +146,7 @@
                         android:id="@+id/tvActiveApp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Apple Music"
+                        android:text="Tidak Ada Pemutaran"
                         android:textColor="@color/text_primary"
                         android:textSize="15sp"
                         android:textStyle="bold" />
@@ -155,7 +155,7 @@
                         android:id="@+id/tvSourceDetail"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Stream Sumber • Lossless"
+                        android:text="Audio Idle"
                         android:textColor="@color/text_muted"
                         android:textSize="11sp"
                         android:layout_marginTop="2dp" />
@@ -172,7 +172,7 @@
                         android:id="@+id/tvSourceRate"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="96.0 kHz"
+                        android:text="-- kHz"
                         android:textColor="@color/text_primary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -181,8 +181,8 @@
                         android:id="@+id/tvSourceBitDepth"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="24-bit PCM"
-                        android:textColor="@color/accent_emerald"
+                        android:text="--"
+                        android:textColor="@color/text_muted"
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:layout_marginTop="2dp" />
@@ -224,7 +224,7 @@
                         android:id="@+id/tvDacName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Kiwi Ears AD1"
+                        android:text="Tidak Ada DAC USB"
                         android:textColor="@color/text_primary"
                         android:textSize="15sp"
                         android:textStyle="bold" />
@@ -233,7 +233,7 @@
                         android:id="@+id/tvDacFormat"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="USB Audio • S24_3LE"
+                        android:text="Status: Terputus / Unplugged"
                         android:textColor="@color/text_muted"
                         android:textSize="11sp"
                         android:layout_marginTop="2dp" />
@@ -250,8 +250,8 @@
                         android:id="@+id/tvDacRate"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="96.0 kHz"
-                        android:textColor="@color/accent_emerald"
+                        android:text="-- kHz"
+                        android:textColor="@color/text_muted"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -259,8 +259,8 @@
                         android:id="@+id/tvMatchBadge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Zero SRC 1:1"
-                        android:textColor="@color/accent_emerald"
+                        android:text="Offline"
+                        android:textColor="@color/text_muted"
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:layout_marginTop="2dp" />

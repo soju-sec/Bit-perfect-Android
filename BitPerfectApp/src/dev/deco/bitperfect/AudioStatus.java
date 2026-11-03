@@ -1,27 +1,28 @@
 package dev.deco.bitperfect;
 
 public class AudioStatus {
-    public String dacName = "USB Audio DAC";
+    public boolean isDacConnected = false;
+    public String dacName = "Tidak Ada DAC USB";
     public int sourceRate = 0;
-    public String sourceBitDepth = "16-bit";
+    public String sourceBitDepth = "";
     public int dacRate = 0;
-    public String dacFormat = "S24_3LE • Altset 2";
-    public String format = "PCM_24_BIT";
+    public String dacFormat = "--";
+    public String format = "";
     public boolean isBitPerfect = false;
     public String activeApp = "None";
     public String activePkg = "";
-    public String routeType = "STANDBY";
+    public String routeType = "DISCONNECTED";
     public boolean isAppBypassed = false;
-    public boolean isMixerBypassed = true;
-    public String matchStatus = "Standby • Menunggu Pemutaran Audio";
+    public boolean isMixerBypassed = false;
+    public String matchStatus = "DAC Terputus";
 
     @Override
     public String toString() {
         return "AudioStatus{" +
-                "dac='" + dacName + '\'' +
+                "isDacConnected=" + isDacConnected +
+                ", dac='" + dacName + '\'' +
                 ", sourceRate=" + sourceRate +
                 ", dacRate=" + dacRate +
-                ", format='" + format + '\'' +
                 ", routeType='" + routeType + '\'' +
                 ", isBitPerfect=" + isBitPerfect +
                 ", activeApp='" + activeApp + '\'' +

@@ -49,6 +49,7 @@ public class MainActivity extends Activity {
     private final BroadcastReceiver mStatusReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            boolean isDacConnected = intent.getBooleanExtra("isDacConnected", false);
             int sourceRate = intent.getIntExtra("sourceRate", 0);
             String sourceBitDepth = intent.getStringExtra("sourceBitDepth");
             int dacRate = intent.getIntExtra("dacRate", 0);
@@ -60,7 +61,7 @@ public class MainActivity extends Activity {
             boolean isAppBypassed = intent.getBooleanExtra("isAppBypassed", false);
             String matchStatus = intent.getStringExtra("matchStatus");
 
-            updateTelemetry(sourceRate, sourceBitDepth, dacRate, dacFormat, dacName, routeType, isBitPerfect, activeApp, isAppBypassed, matchStatus);
+            updateTelemetry(isDacConnected, sourceRate, sourceBitDepth, dacRate, dacFormat, dacName, routeType, isBitPerfect, activeApp, isAppBypassed, matchStatus);
         }
     };
 
@@ -112,6 +113,7 @@ public class MainActivity extends Activity {
 
         refreshAppChips();
         updateAutoSyncPill();
+        updateTelemetry(false, 0, "", 0, "--", "Tidak Ada DAC USB", "DISCONNECTED", false, "Tidak Ada Pemutaran", false, "DAC Terputus");
     }
 
     private void setupListeners() {
@@ -205,45 +207,51 @@ public class MainActivity extends Activity {
         }).start();
     }
 
-    private void updateTelemetry(int sourceRate, String sourceBitDepth, int dacRate, String dacFormat, String dacName, String routeType, boolean isBitPerfect, String activeApp, boolean isAppBypassed, String matchStatus) {
+    private void updateTelemetry(boolean isDacConnected, int sourceRate, String sourceBitDepth, int dacRate, String dacFormat, String dacName, String routeType, boolean isBitPerfect, String activeApp, boolean isAppBypassed, String matchStatus) {
         // 1. Update the big Hero Arch Gauge View!
         if (pipelineGaugeView != null) {
             int displayRate = (dacRate > 0) ? dacRate : sourceRate;
-            pipelineGaugeView.updateStatus(displayRate, sourceBitDepth, isBitPerfect, routeType, activeApp, dacName);
+            pipelineGaugeView.updateStatus(isDacConnected, displayRate, sourceBitDepth, isBitPerfect, routeType, activeApp, dacName);
         }
 
         // 2. Update Source Stream Card
-        if (activeApp != null && !activeApp.isEmpty()) {
+        if (activeApp != null && !activeApp.isEmpty() && !"None".equals(activeApp)) {
             tvActiveApp.setText(activeApp);
+        } else {
+            tvActiveApp.setText("Tidak Ada Pemutaran");
         }
         tvSourceRate.setText(formatRate(sourceRate));
         if (sourceBitDepth != null && !sourceBitDepth.isEmpty() && sourceRate > 0) {
             tvSourceBitDepth.setText(sourceBitDepth + " PCM");
         } else {
-            tvSourceBitDepth.setText("PCM Stream");
+            tvSourceBitDepth.setText("Audio Idle");
         }
 
         // 3. Update Hardware DAC Card
-        if (dacName != null && !dacName.isEmpty()) {
-            tvDacName.setText(dacName);
-        }
-        tvDacRate.setText(formatRate(dacRate));
-        if (dacFormat != null && !dacFormat.isEmpty()) {
-            tvDacFormat.setText(dacFormat);
-        }
-
-        if (isBitPerfect) {
-            tvMatchBadge.setText("Zero SRC 1:1");
-            tvMatchBadge.setTextColor(getColor(R.color.accent_emerald));
-            tvDacRate.setTextColor(getColor(R.color.accent_emerald));
-        } else if ("MIXER".equals(routeType)) {
-            tvMatchBadge.setText("Resampled 48k");
-            tvMatchBadge.setTextColor(getColor(R.color.accent_amber));
-            tvDacRate.setTextColor(getColor(R.color.accent_amber));
+        if (isDacConnected) {
+            tvDacName.setText(dacName != null ? dacName : "USB Audio DAC");
+            tvDacRate.setText(formatRate(dacRate));
+            tvDacFormat.setText(dacFormat != null ? dacFormat : "Terhubung");
+            if (isBitPerfect) {
+                tvMatchBadge.setText("Zero SRC 1:1");
+                tvMatchBadge.setTextColor(getColor(R.color.accent_emerald));
+                tvDacRate.setTextColor(getColor(R.color.accent_emerald));
+            } else if ("MIXER".equals(routeType)) {
+                tvMatchBadge.setText("Resampled 48k");
+                tvMatchBadge.setTextColor(getColor(R.color.accent_amber));
+                tvDacRate.setTextColor(getColor(R.color.accent_amber));
+            } else {
+                tvMatchBadge.setText("Standby");
+                tvMatchBadge.setTextColor(getColor(R.color.text_muted));
+                tvDacRate.setTextColor(getColor(R.color.text_muted));
+            }
         } else {
-            tvMatchBadge.setText("Standby");
-            tvMatchBadge.setTextColor(getColor(R.color.text_muted));
+            tvDacName.setText("Tidak Ada DAC USB");
+            tvDacFormat.setText("Status: Terputus (Unplugged)");
+            tvDacRate.setText("-- kHz");
             tvDacRate.setTextColor(getColor(R.color.text_muted));
+            tvMatchBadge.setText("Offline");
+            tvMatchBadge.setTextColor(getColor(R.color.text_muted));
         }
 
         highlightRateButton(dacRate);

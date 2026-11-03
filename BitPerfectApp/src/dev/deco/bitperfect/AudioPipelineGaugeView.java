@@ -10,12 +10,13 @@ import android.util.AttributeSet;
 import android.view.View;
 
 public class AudioPipelineGaugeView extends View {
-    private int mSampleRate = 96000;
+    private boolean mIsDacConnected = false;
+    private int mSampleRate = 0;
     private String mBitDepth = "24-bit";
-    private boolean mIsBitPerfect = true;
-    private String mRouteType = "DIRECT_PCM";
-    private String mActiveApp = "Apple Music";
-    private String mDacName = "Kiwi Ears AD1";
+    private boolean mIsBitPerfect = false;
+    private String mRouteType = "DISCONNECTED";
+    private String mActiveApp = "None";
+    private String mDacName = "Tidak Ada DAC USB";
 
     private Paint mArcPaint;
     private Paint mTextPaint;
@@ -52,7 +53,8 @@ public class AudioPipelineGaugeView extends View {
         mArcRect = new RectF();
     }
 
-    public void updateStatus(int sampleRate, String bitDepth, boolean isBitPerfect, String routeType, String activeApp, String dacName) {
+    public void updateStatus(boolean isDacConnected, int sampleRate, String bitDepth, boolean isBitPerfect, String routeType, String activeApp, String dacName) {
+        mIsDacConnected = isDacConnected;
         mSampleRate = sampleRate;
         if (bitDepth != null && !bitDepth.isEmpty()) mBitDepth = bitDepth;
         mIsBitPerfect = isBitPerfect;
@@ -65,7 +67,7 @@ public class AudioPipelineGaugeView extends View {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int w = MeasureSpec.getSize(widthMeasureSpec);
-        int h = (int) (w * 0.74f); // Refined aspect ratio for the arch
+        int h = (int) (w * 0.74f);
         setMeasuredDimension(w, h);
     }
 
@@ -86,30 +88,56 @@ public class AudioPipelineGaugeView extends View {
         mArcRect.set(cx - radius, cy - radius, cx + radius, cy + radius);
         mArcPaint.setStrokeWidth(strokeWidth);
 
-        // Segment illumination based on sample rate
-        int activeSegments;
-        if (mSampleRate >= 352800) {
-            activeSegments = 10;
-        } else if (mSampleRate >= 176400) {
-            activeSegments = 8;
-        } else if (mSampleRate >= 88200) {
-            activeSegments = 6;
-        } else if (mSampleRate >= 44100) {
-            activeSegments = 3;
-        } else {
-            activeSegments = 1;
-        }
-
+        // Determine active segments and theme colors
+        int activeSegments = 0;
         int activeColor;
-        if (mIsBitPerfect) {
-            activeColor = Color.parseColor("#10B981"); // Vibrant Emerald
-        } else if ("MIXER".equals(mRouteType)) {
-            activeColor = Color.parseColor("#F59E0B"); // Warm Amber
-        } else {
-            activeColor = Color.parseColor("#475569"); // Slate
-        }
-        int inactiveColor = Color.parseColor("#1C2536"); // Distinct soft outline segment
+        String topIcon;
+        String subtitleText;
+        String statusText;
 
+        if (!mIsDacConnected || "DISCONNECTED".equals(mRouteType)) {
+            // DAC UNPLUGGED
+            activeSegments = 0;
+            activeColor = Color.parseColor("#475569");
+            topIcon = "🔌";
+            subtitleText = "DAC TIDAK TERDETEKSI";
+            statusText = "○ SAMBUNGKAN USB DAC";
+        } else if ("STANDBY".equals(mRouteType) || mSampleRate <= 0) {
+            // DAC CONNECTED BUT IDLE
+            activeSegments = 1;
+            activeColor = Color.parseColor("#64748B");
+            topIcon = "⏸️";
+            subtitleText = "AUDIO STANDBY (IDLE)";
+            statusText = "○ MENUNGGU PEMUTARAN AUDIO";
+        } else if (mIsBitPerfect || "DIRECT_PCM".equals(mRouteType)) {
+            // DIRECT BIT-PERFECT
+            if (mSampleRate >= 352800) activeSegments = 10;
+            else if (mSampleRate >= 176400) activeSegments = 8;
+            else if (mSampleRate >= 88200) activeSegments = 6;
+            else if (mSampleRate >= 44100) activeSegments = 3;
+            else activeSegments = 2;
+
+            activeColor = Color.parseColor("#10B981");
+            topIcon = "⚡";
+            subtitleText = "AUDIO PIPELINE LIVE";
+            statusText = "● 1:1 DIRECT BIT-PERFECT (ZERO SRC)";
+        } else if ("MIXER".equals(mRouteType)) {
+            // ANDROID MIXER 48k
+            activeSegments = 3;
+            activeColor = Color.parseColor("#F59E0B");
+            topIcon = "🔊";
+            subtitleText = "MIXER ANDROID AKTIF";
+            statusText = "● 48 kHz RESAMPLE (MIXER)";
+        } else {
+            // SPEAKER OR OTHER
+            activeSegments = 2;
+            activeColor = Color.parseColor("#64748B");
+            topIcon = "📱";
+            subtitleText = "SPEAKER INTERNAL HP";
+            statusText = "● AUDIO KE SPEAKER INTERNAL";
+        }
+
+        int inactiveColor = Color.parseColor("#1C2536");
         float segmentSweep = (TOTAL_SWEEP - (TOTAL_SEGMENTS - 1) * GAP_ANGLE) / TOTAL_SEGMENTS;
 
         // Draw segmented arch blocks
@@ -123,7 +151,7 @@ public class AudioPipelineGaugeView extends View {
             canvas.drawArc(mArcRect, start, segmentSweep, false, mArcPaint);
         }
 
-        // --- Center Content (Like 1250 kcal in the mockup) ---
+        // --- Center Content ---
 
         // 1. Top Icon & Pipeline Live Subtitle
         float topIconY = cy - radius * 0.44f;
@@ -131,17 +159,17 @@ public class AudioPipelineGaugeView extends View {
         mTextPaint.setColor(activeColor);
         mTextPaint.setTextSize(13f * density);
         mTextPaint.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD));
-        canvas.drawText("⚡", cx, topIconY, mTextPaint);
+        canvas.drawText(topIcon, cx, topIconY, mTextPaint);
 
         mTextPaint.setColor(Color.parseColor("#8E9BB0"));
         mTextPaint.setTextSize(10.5f * density);
         mTextPaint.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL));
         mTextPaint.setLetterSpacing(0.06f);
-        canvas.drawText("AUDIO PIPELINE LIVE", cx, topIconY + 14f * density, mTextPaint);
+        canvas.drawText(subtitleText, cx, topIconY + 14f * density, mTextPaint);
 
         // 2. GIGANTIC HERO LIVE RATE (Replacing kcal from mockup)
         String mainRate;
-        if (mSampleRate <= 0) {
+        if (!mIsDacConnected || mSampleRate <= 0) {
             mainRate = "--";
         } else if (mSampleRate % 1000 == 0) {
             mainRate = String.valueOf(mSampleRate / 1000) + ".0";
@@ -157,21 +185,13 @@ public class AudioPipelineGaugeView extends View {
         float rateY = cy + 8f * density;
         canvas.drawText(mainRate + " kHz", cx, rateY, mTextPaint);
 
-        // 3. Status Badge / Match Subtitle (Like Goal 2000 kcal)
+        // 3. Status Badge / Match Subtitle
         mTextPaint.setTextSize(10f * density);
         mTextPaint.setLetterSpacing(0.04f);
         mTextPaint.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD));
+        mTextPaint.setColor(activeColor);
 
         float statusY = rateY + 18f * density;
-        if (mIsBitPerfect) {
-            mTextPaint.setColor(Color.parseColor("#34D399")); // Emerald
-            canvas.drawText("● 1:1 DIRECT BIT-PERFECT (ZERO SRC)", cx, statusY, mTextPaint);
-        } else if ("MIXER".equals(mRouteType)) {
-            mTextPaint.setColor(Color.parseColor("#FBBF24")); // Amber
-            canvas.drawText("● MIXER ANDROID (RESAMPLED 48 kHz)", cx, statusY, mTextPaint);
-        } else {
-            mTextPaint.setColor(Color.parseColor("#64748B"));
-            canvas.drawText("○ STANDBY • MENUNGGU AUDIO", cx, statusY, mTextPaint);
-        }
+        canvas.drawText(statusText, cx, statusY, mTextPaint);
     }
 }
