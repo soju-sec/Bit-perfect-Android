@@ -603,17 +603,39 @@ public class AudioEngine {
     }
 
     public static boolean applyEngineTweaks(Context context) {
-        Log.i(TAG, "Applying Audio HAL Engine Tweaks via Root...");
+        Log.i(TAG, "Applying Root Audio HAL Engine Tweaks (Anti-Stutter & Anti-Pop)...");
         StringBuilder cmds = new StringBuilder();
+        // Enable Hardware USB Audio Offload & High-Res
         cmds.append("resetprop -n vendor.audio.feature.usb_offload.enable true\n");
         cmds.append("resetprop -n vendor.audio.usb.super_high_res true\n");
         cmds.append("resetprop -n persist.vendor.audio.samplerates 44100,48000,88200,96000,176400,192000,352800,384000\n");
         cmds.append("resetprop -n persist.vendor.audio.format.24bit true\n");
         cmds.append("resetprop -n persist.vendor.audio_hal.dsp_bit_width_enforce_mode 24\n");
-        cmds.append("resetprop -n af.fast_track_multiplier 2\n");
-        cmds.append("resetprop -n vendor.audio.feature.usb_offload_burst_mode.enable false\n");
-        cmds.append("resetprop -n ro.audio.flinger_standbytime_ms 1000\n");
         
+        // FIX: Remove properties that caused video stuttering & 'tuk-tuk' audio pops
+        // Deep buffer must remain ENABLED for video apps (YouTube, TikTok, Instagram)
+        cmds.append("resetprop -n audio.deep_buffer.media true\n");
+        // Remove standby 1000ms which caused frequent amplifier click/tuk-tuk pops
+        cmds.append("resetprop -p --delete ro.audio.flinger_standbytime_ms\n");
+        cmds.append("resetprop -p --delete aaudio.mmap_policy\n");
+        cmds.append("resetprop -p --delete aaudio.mmap_exclusive_policy\n");
+
+        String out = runRootCommand(cmds.toString());
+        return out != null;
+    }
+
+    public static boolean purgeOldModule() {
+        Log.i(TAG, "Purging old Magisk/KernelSU module and restoring stock vendor audio config...");
+        StringBuilder cmds = new StringBuilder();
+        cmds.append("umount /vendor/etc/audio_policy_configuration.xml 2>/dev/null\n");
+        cmds.append("umount /vendor/etc/audio_io_policy.conf 2>/dev/null\n");
+        cmds.append("umount /vendor/etc/audio_effects.xml 2>/dev/null\n");
+        cmds.append("umount /system/lib64/libaudiopolicymanagerdefault.so 2>/dev/null\n");
+        cmds.append("rm -rf /data/adb/modules/disable_resample_48k /data/adb/modules_update/disable_resample_48k 2>/dev/null\n");
+        cmds.append("resetprop -n audio.deep_buffer.media true\n");
+        cmds.append("resetprop -p --delete ro.audio.flinger_standbytime_ms\n");
+        cmds.append("resetprop -p --delete aaudio.mmap_policy\n");
+        cmds.append("resetprop -p --delete aaudio.mmap_exclusive_policy\n");
         String out = runRootCommand(cmds.toString());
         return out != null;
     }

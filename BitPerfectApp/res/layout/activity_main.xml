@@ -669,7 +669,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="TWEAK AUDIO HAL SNAPDRAGON"
+                        android:text="ROOT ENGINE BIT-PERFECT (STANDALONE)"
                         android:textColor="@color/text_muted"
                         android:textSize="11sp"
                         android:textStyle="bold"
@@ -679,7 +679,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Menerapkan properti vendor untuk membuka USB Offload 384 kHz, bit depth 24/32-bit murni, dan menonaktifkan burst-mode (mencegah lag Hi-Res di TIDAL)."
+                        android:text="Menerapkan bypass mixer secara mandiri langsung dari aplikasi menggunakan hak akses root. Melindungi Deep Buffer agar video (YouTube/TikTok) tidak patah-patah dan bebas suara 'tuk-tuk'."
                         android:textColor="@color/text_body"
                         android:textSize="12sp"
                         android:lineSpacingExtra="3dp"
@@ -689,7 +689,7 @@
                         android:id="@+id/btnApplyEngine"
                         android:layout_width="match_parent"
                         android:layout_height="44dp"
-                        android:text="⚡ Terapkan Engine Bypass Sekarang"
+                        android:text="⚡ Terapkan Engine Root Standalone"
                         android:textColor="#FFFFFF"
                         android:background="@drawable/bg_center_squircle_coral"
                         android:textSize="13sp"
@@ -697,7 +697,48 @@
                         android:textAllCaps="false" />
                 </LinearLayout>
 
-                <!-- KernelSU Note Card -->
+                <!-- Action Card: Clean Old Module -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_white"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:elevation="2dp"
+                    android:layout_marginBottom="14dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PEMBERSIH MODUL KERNELSU/MAGISK"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Menghapus modul 'disable_resample_48k' dari KernelSU dan melepas bind-mount vendor agar audio policy kembali bersih dan normal."
+                        android:textColor="@color/text_body"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="3dp"
+                        android:layout_marginBottom="14dp" />
+
+                    <Button
+                        android:id="@+id/btnPurgeModule"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:text="🗑️ Bersihkan Sisa Modul Lama"
+                        android:textColor="@color/text_title"
+                        android:background="@drawable/btn_rate_light"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="false" />
+                </LinearLayout>
+
+                <!-- Status Card -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -709,7 +750,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="CATATAN KERNELSU"
+                        android:text="STATUS AKSES ROOT"
                         android:textColor="@color/text_muted"
                         android:textSize="11sp"
                         android:textStyle="bold"
@@ -719,7 +760,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Jika tombol tweak gagal, buka aplikasi KernelSU Manager di HP Anda dan izinkan Superuser untuk Bit-Perfect Live."
+                        android:text="Akses Superuser (KowSU) aktif. Semua fungsi bypass mixer dan sinkronisasi rate berjalan langsung di dalam aplikasi tanpa bergantung pada modul sistem."
                         android:textColor="@color/text_body"
                         android:textSize="12sp"
                         android:lineSpacingExtra="3dp" />

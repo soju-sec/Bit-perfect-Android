@@ -84,6 +84,7 @@ public class MainActivity extends Activity {
 
     // Settings Action
     private Button btnApplyEngine;
+    private Button btnPurgeModule;
 
     private boolean mAutoRate = true;
 
@@ -191,6 +192,7 @@ public class MainActivity extends Activity {
         };
 
         btnApplyEngine = findViewById(R.id.btnApplyEngine);
+        btnPurgeModule = findViewById(R.id.btnPurgeModule);
 
         mSelectedBitDepth = AudioEngine.getTargetBitDepth(this);
         highlightBitDepthButton(mSelectedBitDepth);
@@ -245,6 +247,17 @@ public class MainActivity extends Activity {
 
         if (btnApplyEngine != null) {
             btnApplyEngine.setOnClickListener(v -> applyEngineWithToast());
+        }
+
+        if (btnPurgeModule != null) {
+            btnPurgeModule.setOnClickListener(v -> {
+                new Thread(() -> {
+                    boolean ok = AudioEngine.purgeOldModule();
+                    runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, ok ? "🗑️ Modul lama dibersihkan! Sistem audio stabil tanpa lag." : "Gagal membersihkan modul", Toast.LENGTH_SHORT).show();
+                    });
+                }).start();
+            });
         }
 
         if (btnSelectAllApps != null) {
