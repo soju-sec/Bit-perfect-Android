@@ -20,13 +20,13 @@
     <string name="switch_auto_rate">Ikuti rate sumber otomatis</string>
     <string name="desc_auto_rate">Jeda cerdas saat ganti track agar clock DAC sinkron murni</string>
     <string name="title_target_apps">TARGET APLIKASI BYPASS</string>
-    <string name="hint_video_protect">🛡️ Video (YouTube/TikTok) otomatis memakai mixer 48k agar audio/video tidak patah-patah.</string>
+    <string name="hint_video_protect">Aplikasi video (YouTube, TikTok) memakai mixer sistem 48 kHz agar video tidak patah-patah.</string>
     
     <string name="title_manual_rate">PILIHAN SAMPLE RATE MANUAL</string>
     <string name="rate_reset">Reset</string>
     
-    <string name="btn_engine_active">⚡ BYPASS ENGINE</string>
-    <string name="btn_engine_apply">⚡ Terapkan Bypass</string>
+    <string name="btn_engine_active">BYPASS ENGINE</string>
+    <string name="btn_engine_apply">Terapkan Bypass</string>
     <string name="btn_uninstall_module">Copot Modul Magisk</string>
     <string name="footnote_text">Bypass HAL AudioFlinger • Non-destructive • Tanpa Modul Zip Magisk</string>
 </resources>

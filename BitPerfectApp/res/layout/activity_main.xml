@@ -108,12 +108,13 @@
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:background="@drawable/bg_squircle_coral">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
                             android:layout_centerInParent="true"
-                            android:text="🎵"
-                            android:textSize="20sp" />
+                            android:src="@drawable/ic_music_track"
+                            android:tint="#FFFFFF"
+                            android:contentDescription="Music Track" />
                     </RelativeLayout>
 
                     <LinearLayout
@@ -184,12 +185,13 @@
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:background="@drawable/bg_squircle_coral">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
                             android:layout_centerInParent="true"
-                            android:text="🎧"
-                            android:textSize="20sp" />
+                            android:src="@drawable/ic_headphone_dac"
+                            android:tint="#FFFFFF"
+                            android:contentDescription="Headphone DAC" />
                     </RelativeLayout>
 
                     <LinearLayout
@@ -362,7 +364,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🛡️ PERLINDUNGAN SINKRONISASI VIDEO"
+                        android:text="PERLINDUNGAN SINKRONISASI VIDEO"
                         android:textColor="@color/accent_coral"
                         android:textSize="11sp"
                         android:textStyle="bold"
