@@ -213,6 +213,9 @@ public class MainActivity extends Activity {
         mSelectedBitDepth = AudioEngine.getTargetBitDepth(this);
         highlightBitDepthButton(mSelectedBitDepth);
 
+        mSelectedRate = AudioEngine.getTargetRate(this);
+        highlightRateButton(mSelectedRate);
+
         updateAutoSyncPill();
         updateTelemetry(false, 0, "", 0, "--", "Tidak Ada DAC USB", "DISCONNECTED", false, "Tidak Ada Pemutaran", "", false, "DAC Terputus");
     }
@@ -465,19 +468,34 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void selectRate(int rateHz, Button clickedBtn) {
-        mSelectedRate = rateHz;
+    private void highlightRateButton(int rateHz) {
+        Button target = btnRateReset;
+        if (rateHz == 44100) target = btnRate44k;
+        else if (rateHz == 48000) target = btnRate48k;
+        else if (rateHz == 88200) target = btnRate88k;
+        else if (rateHz == 96000) target = btnRate96k;
+        else if (rateHz == 176400) target = btnRate176k;
+        else if (rateHz == 192000) target = btnRate192k;
+        else if (rateHz == 384000) target = btnRate384k;
+
         for (Button b : mRateButtons) {
             b.setBackgroundResource(R.drawable.btn_rate_light);
             b.setTextColor(getColor(R.color.text_title));
         }
-        clickedBtn.setBackgroundResource(R.drawable.btn_rate_light_active);
-        clickedBtn.setTextColor(getColor(R.color.card_bg));
+        if (target != null) {
+            target.setBackgroundResource(R.drawable.btn_rate_light_active);
+            target.setTextColor(getColor(R.color.card_bg));
+        }
+    }
+
+    private void selectRate(int rateHz, Button clickedBtn) {
+        mSelectedRate = rateHz;
+        highlightRateButton(rateHz);
 
         new Thread(() -> {
             AudioEngine.setDacRate(MainActivity.this, rateHz, mSelectedBitDepth, true);
             runOnUiThread(() -> {
-                String text = rateHz == 0 ? "DAC direset ke 48 kHz (Default Mixer)" : "Clock DAC diubah ke " + formatRate(rateHz);
+                String text = rateHz == 0 ? "DAC direset ke Auto 1:1 / Default Mixer" : "Clock DAC dikunci ke " + formatRate(rateHz);
                 Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show();
             });
         }).start();
@@ -540,27 +558,12 @@ public class MainActivity extends Activity {
             tvMatchBadge.setTextColor(getColor(R.color.text_muted));
         }
 
-        highlightRateButton(dacRate);
-    }
-
-    private void highlightRateButton(int rateHz) {
-        if (rateHz <= 0) return;
-        Button target = null;
-        if (rateHz == 44100) target = btnRate44k;
-        else if (rateHz == 48000) target = btnRate48k;
-        else if (rateHz == 88200) target = btnRate88k;
-        else if (rateHz == 96000) target = btnRate96k;
-        else if (rateHz == 176400) target = btnRate176k;
-        else if (rateHz == 192000) target = btnRate192k;
-        else if (rateHz == 384000) target = btnRate384k;
-
-        if (target != null) {
-            for (Button b : mRateButtons) {
-                b.setBackgroundResource(R.drawable.btn_rate_light);
-                b.setTextColor(getColor(R.color.text_title));
-            }
-            target.setBackgroundResource(R.drawable.btn_rate_light_active);
-            target.setTextColor(getColor(R.color.card_bg));
+        if (mSelectedRate == 0 && dacRate > 0) {
+            highlightRateButton(dacRate);
+        } else if (mSelectedRate > 0) {
+            highlightRateButton(mSelectedRate);
+        } else {
+            highlightRateButton(0);
         }
     }
 

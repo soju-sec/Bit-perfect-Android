@@ -36,6 +36,7 @@ public class AudioEngine {
     private static final String PREF_NAME = "bitperfect_prefs";
     private static final String PREF_BYPASS_APPS = "bypassed_packages";
     public static final String PREF_TARGET_BIT_DEPTH = "target_bit_depth";
+    public static final String PREF_TARGET_RATE = "target_sample_rate";
 
     public static class AudioAppInfo {
         public String packageName;
@@ -469,31 +470,57 @@ public class AudioEngine {
                 }
             }
 
-            // 2. Check for Direct USB Exclusive Mode (usbfs claimed by Bitchord/UAPP/Hiby/Neutron)
-            String usbfsOut = runPrivilegedCommand("ls /sys/bus/usb/drivers/usbfs/ 2>/dev/null");
-            boolean usbfsDirectActive = (usbfsOut != null && (usbfsOut.contains("1-1") || usbfsOut.contains("usb"))) || (activeHardwarePkg != null && directUsbPidStr != null && !directUsbPidStr.trim().isEmpty());
+            // 2. Query Codec Native Stream Resolution from dumpsys media.metrics (Universal for all Android media decoders)
+            String targetCodecPkg = activeHardwarePkg != null ? activeHardwarePkg : status.activePkg;
+            if (targetCodecPkg != null && !targetCodecPkg.isEmpty()) {
+                String codecDump = runPrivilegedCommand("dumpsys media.metrics 2>/dev/null | grep -E '\\{codec,.*" + targetCodecPkg + "' | tail -n 1");
+                if (codecDump != null && codecDump.contains("sampleRate=")) {
+                    int srIdx = codecDump.indexOf("sampleRate=");
+                    if (srIdx != -1) {
+                        String srSub = codecDump.substring(srIdx + 11).replaceAll("[^0-9].*", "").trim();
+                        try {
+                            int cRate = Integer.parseInt(srSub);
+                            if (cRate > 0) {
+                                activeStreamRate = cRate;
+                                status.sourceRate = cRate;
+                                if (codecDump.contains("audio/flac") || codecDump.contains("PCM_24") || codecDump.contains("c2.android.flac")) {
+                                    status.sourceBitDepth = "24-bit";
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
 
-            // 3. Hardware DAC Clock directly from Snapdragon Kernel DSP (QTI uaudio)
-            String uaudioDmesg = runPrivilegedCommand("dmesg 2>/dev/null | grep -E 'handle_uaudio_stream_req.*en:1' | tail -n 1");
+            // 3. Check for Direct USB Exclusive Mode (usbfs claimed by Bitchord/UAPP/Hiby/Neutron)
+            String usbfsOut = runPrivilegedCommand("ls /sys/bus/usb/drivers/usbfs/ 2>/dev/null");
+            String altSettingOut = runPrivilegedCommand("cat /sys/bus/usb/devices/*-1:1.*/bAlternateSetting 2>/dev/null");
+            boolean usbStreamingActive = altSettingOut != null && (altSettingOut.contains("1") || altSettingOut.contains("2") || altSettingOut.contains("3"));
+            boolean usbfsDirectActive = (usbfsOut != null && (usbfsOut.contains("1-1") || usbfsOut.contains("usb"))) || (activeHardwarePkg != null && directUsbPidStr != null && !directUsbPidStr.trim().isEmpty()) || usbStreamingActive;
+
+            // 4. Hardware DAC Clock directly from Snapdragon Kernel DSP (QTI uaudio)
+            String uaudioLast = runPrivilegedCommand("dmesg 2>/dev/null | grep -E 'handle_uaudio_stream_req|uaudio_disconnect_cb|uaudio_dev_cleanup' | tail -n 1");
             boolean kernelUaudioActive = false;
             int kernelRate = 0;
             String kernelFormat = "";
-            if (uaudioDmesg != null && uaudioDmesg.contains("rate:")) {
-                try {
-                    int rIdx = uaudioDmesg.indexOf("rate:");
-                    String rSub = uaudioDmesg.substring(rIdx + 5).replaceAll("[^0-9].*", "").trim();
-                    kernelRate = Integer.parseInt(rSub);
-                    if (kernelRate > 0) {
-                        kernelUaudioActive = true;
-                        if (uaudioDmesg.contains("fmt:10")) {
-                            kernelFormat = "24-bit";
-                        } else if (uaudioDmesg.contains("fmt:14")) {
-                            kernelFormat = "32-bit";
-                        } else if (uaudioDmesg.contains("fmt:2")) {
-                            kernelFormat = "16-bit";
+            if (uaudioLast != null && uaudioLast.contains("en:1") && !uaudioLast.contains("release") && !uaudioLast.contains("disconnect") && !uaudioLast.contains("cleanup")) {
+                if (uaudioLast.contains("rate:")) {
+                    try {
+                        int rIdx = uaudioLast.indexOf("rate:");
+                        String rSub = uaudioLast.substring(rIdx + 5).replaceAll("[^0-9].*", "").trim();
+                        kernelRate = Integer.parseInt(rSub);
+                        if (kernelRate > 0) {
+                            kernelUaudioActive = true;
+                            if (uaudioLast.contains("fmt:10")) {
+                                kernelFormat = "24-bit";
+                            } else if (uaudioLast.contains("fmt:14")) {
+                                kernelFormat = "32-bit";
+                            } else if (uaudioLast.contains("fmt:2")) {
+                                kernelFormat = "16-bit";
+                            }
                         }
-                    }
-                } catch (Exception ignored) {}
+                    } catch (Exception ignored) {}
+                }
             }
 
             // 4. Read AudioFlinger direct & mixer threads with independent per-thread state
@@ -578,18 +605,20 @@ public class AudioEngine {
                     }
                 }
 
+                int lockedRate = getTargetRate(context);
+
                 if (usbfsDirectActive) {
                     // Direct USB is exclusive, bypassing Android AudioMixer & AudioFlinger completely
                     status.routeType = "DIRECT_PCM";
-                    int finalRate = directRate > 0 ? directRate : (kernelRate > 0 ? kernelRate : (status.sourceRate > 0 ? status.sourceRate : 96000));
-                    status.sourceRate = finalRate;
+                    int finalRate = (lockedRate > 0) ? lockedRate : (activeStreamRate > 0 ? activeStreamRate : (status.sourceRate > 0 ? status.sourceRate : (directRate > 0 ? directRate : 96000)));
+                    status.sourceRate = (activeStreamRate > 0) ? activeStreamRate : finalRate;
                     status.dacRate = finalRate;
                     if (status.sourceBitDepth.isEmpty()) status.sourceBitDepth = "24-bit";
                     status.dacFormat = "24-bit (Direct USB) • Direct PCM (Bit-Perfect)";
                     status.isBitPerfect = true;
                 } else if (alsaHwRate > 0) {
                     // ALSA stream verified directly from DAC driver
-                    status.dacRate = alsaHwRate;
+                    status.dacRate = (lockedRate > 0) ? lockedRate : alsaHwRate;
                     if (status.sourceRate == 0) status.sourceRate = alsaHwRate;
                     status.isBitPerfect = (status.sourceRate == status.dacRate);
                     status.routeType = status.isBitPerfect ? "DIRECT_PCM" : "MIXER";
@@ -597,8 +626,8 @@ public class AudioEngine {
                 } else if (directActive || (kernelUaudioActive && kernelRate > 0)) {
                     // AudioFlinger Direct Track or Snapdragon QTI DSP Direct Track
                     status.routeType = "DIRECT_PCM";
-                    int finalRate = directRate > 0 ? directRate : kernelRate;
-                    if (status.sourceRate == 0) status.sourceRate = finalRate;
+                    int finalRate = (lockedRate > 0) ? lockedRate : (directRate > 0 ? directRate : kernelRate);
+                    if (status.sourceRate == 0) status.sourceRate = (activeStreamRate > 0) ? activeStreamRate : finalRate;
                     status.dacRate = finalRate > 0 ? finalRate : status.sourceRate;
                     if (status.sourceBitDepth.isEmpty()) status.sourceBitDepth = directBitDepth;
                     status.dacFormat = (kernelFormat.isEmpty() ? directBitDepth : kernelFormat) + " • Direct PCM (Bit-Perfect)";
@@ -606,13 +635,16 @@ public class AudioEngine {
                 } else if (mixerActive) {
                     // Resampled through AudioMixer
                     status.routeType = "MIXER";
-                    status.dacRate = mixerRate > 0 ? mixerRate : 48000;
+                    status.dacRate = (lockedRate > 0) ? lockedRate : (mixerRate > 0 ? mixerRate : 48000);
                     status.dacFormat = mixerBitDepth + " • Android AudioMixer";
                     status.isBitPerfect = (status.sourceRate > 0 && status.sourceRate == status.dacRate);
                 } else if (speakerActive) {
                     status.routeType = "SPEAKER";
                 } else {
                     status.routeType = "STANDBY";
+                    if (lockedRate > 0) {
+                        status.dacRate = lockedRate;
+                    }
                 }
             }
 
@@ -900,6 +932,16 @@ public class AudioEngine {
         prefs.edit().putInt(PREF_TARGET_BIT_DEPTH, bitDepth).apply();
     }
 
+    public static int getTargetRate(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        return prefs.getInt(PREF_TARGET_RATE, 0); // 0 = Auto Follow / Reset
+    }
+
+    public static void setTargetRate(Context context, int rateHz) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putInt(PREF_TARGET_RATE, rateHz).apply();
+    }
+
     public static boolean extractEngineFiles(Context context) {
         try {
             File internalDir = new File(context.getFilesDir(), "engine");
@@ -1069,6 +1111,8 @@ public class AudioEngine {
 
     public static boolean setDacRate(Context context, int targetRate, int targetBitDepth, boolean safePause) {
         Log.i(TAG, "setDacRate: " + targetRate + " Hz, bitDepth=" + targetBitDepth + ", safePause=" + safePause);
+        setTargetRate(context, targetRate);
+        setTargetBitDepth(context, targetBitDepth);
 
         if (safePause) {
             dispatchMediaKey("127"); // KEYCODE_MEDIA_PAUSE
