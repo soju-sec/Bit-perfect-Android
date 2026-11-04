@@ -473,21 +473,101 @@ public class AudioEngine {
             // 2. Query Codec Native Stream Resolution from dumpsys media.metrics (Universal for all Android media decoders)
             String targetCodecPkg = activeHardwarePkg != null ? activeHardwarePkg : status.activePkg;
             if (targetCodecPkg != null && !targetCodecPkg.isEmpty()) {
-                String codecDump = runPrivilegedCommand("dumpsys media.metrics 2>/dev/null | grep -E '\\{codec,.*" + targetCodecPkg + "' | tail -n 1");
-                if (codecDump != null && codecDump.contains("sampleRate=")) {
-                    int srIdx = codecDump.indexOf("sampleRate=");
-                    if (srIdx != -1) {
-                        String srSub = codecDump.substring(srIdx + 11).replaceAll("[^0-9].*", "").trim();
-                        try {
-                            int cRate = Integer.parseInt(srSub);
-                            if (cRate > 0) {
-                                activeStreamRate = cRate;
-                                status.sourceRate = cRate;
-                                if (codecDump.contains("audio/flac") || codecDump.contains("PCM_24") || codecDump.contains("c2.android.flac")) {
-                                    status.sourceBitDepth = "24-bit";
+                String metricsDump = runPrivilegedCommand("dumpsys media.metrics 2>/dev/null | grep -E '(\\{codec,|\\{audio\\.track\\.|\\{audiotrack,).*(" + targetCodecPkg + "|audioserver)' | tail -n 40");
+                if (metricsDump != null && !metricsDump.trim().isEmpty()) {
+                    int latestFlacRate = 0;
+                    String latestFlacBitDepth = "24-bit";
+                    int latestOtherRate = 0;
+                    String latestOtherBitDepth = "16-bit";
+                    int fallbackAnyRate = 0;
+
+                    for (String line : metricsDump.split("\n")) {
+                        String tLine = line.trim();
+                        if (tLine.isEmpty()) continue;
+
+                        // Ignore entries originating from other background apps (e.g. facebook, instagram, systemui)
+                        if (targetCodecPkg != null && !targetCodecPkg.isEmpty() && !tLine.contains(targetCodecPkg) && (tLine.contains("com.") || tLine.contains("android.uid."))) {
+                            continue;
+                        }
+
+                        if (tLine.contains("{codec,")) {
+                            int sr = 0;
+                            int srIdx = tLine.indexOf("sampleRate=");
+                            if (srIdx != -1) {
+                                String srSub = tLine.substring(srIdx + 11).replaceAll("[^0-9].*", "").trim();
+                                try { sr = Integer.parseInt(srSub); } catch (Exception ignored) {}
+                            }
+
+                            int lifetimeMs = 0;
+                            int lifeIdx = tLine.indexOf("lifetimeMs=");
+                            if (lifeIdx != -1) {
+                                String lSub = tLine.substring(lifeIdx + 11).replaceAll("[^0-9].*", "").trim();
+                                try { lifetimeMs = Integer.parseInt(lSub); } catch (Exception ignored) {}
+                            }
+
+                            int frames = 0;
+                            int fIdx = tLine.indexOf("frames=");
+                            if (fIdx != -1) {
+                                String fSub = tLine.substring(fIdx + 7).replaceAll("[^0-9].*", "").trim();
+                                try { frames = Integer.parseInt(fSub); } catch (Exception ignored) {}
+                            }
+
+                            boolean isFlac = tLine.contains("audio/flac") || tLine.contains("c2.android.flac") || tLine.contains("PCM_24");
+                            boolean isOpus = tLine.contains("audio/opus") || tLine.contains("c2.android.opus");
+                            // In apps like BitChord, transient Opus decoders with low frames are previews/caching.
+                            boolean isTransient = isOpus && (lifetimeMs < 6000 && frames < 400);
+
+                            if (sr > 0) {
+                                fallbackAnyRate = sr;
+                                if (isFlac) {
+                                    latestFlacRate = sr;
+                                    latestFlacBitDepth = (sr > 48000 || tLine.contains("24_BIT") || tLine.contains("PCM_24") || tLine.contains("FLOAT")) ? "24-bit" : "16-bit";
+                                } else if (!isTransient) {
+                                    latestOtherRate = sr;
+                                    latestOtherBitDepth = (sr > 48000 || tLine.contains("24_BIT") || tLine.contains("FLOAT")) ? "24-bit" : "16-bit";
                                 }
                             }
-                        } catch (Exception ignored) {}
+                        } else if (tLine.contains("{audio.track.") || tLine.contains("{audiotrack,")) {
+                            int trackSr = 0;
+                            int effIdx = tLine.indexOf("effective.sampleRate=");
+                            int srIdx = tLine.indexOf("sampleRate=");
+                            if (srIdx == -1) srIdx = tLine.indexOf("sample_rate:");
+
+                            if (effIdx != -1) {
+                                String s = tLine.substring(effIdx + 21).replaceAll("[^0-9].*", "").trim();
+                                try { trackSr = Integer.parseInt(s); } catch (Exception ignored) {}
+                            } else if (srIdx != -1) {
+                                int offset = tLine.startsWith("sampleRate=", srIdx) ? 11 : 12;
+                                String s = tLine.substring(srIdx + offset).replaceAll("[^0-9].*", "").trim();
+                                try { trackSr = Integer.parseInt(s); } catch (Exception ignored) {}
+                            }
+
+                            if (trackSr > 0) {
+                                fallbackAnyRate = trackSr;
+                                if (trackSr != 48000 || (latestFlacRate == 0 && latestOtherRate == 0)) {
+                                    latestOtherRate = trackSr;
+                                    if (trackSr > 48000) latestOtherBitDepth = "24-bit";
+                                }
+                            }
+                        }
+                    }
+
+                    int finalStreamRate = 0;
+                    String finalBitDepth = "16-bit";
+                    if (latestFlacRate > 0) {
+                        finalStreamRate = latestFlacRate;
+                        finalBitDepth = latestFlacBitDepth;
+                    } else if (latestOtherRate > 0) {
+                        finalStreamRate = latestOtherRate;
+                        finalBitDepth = latestOtherBitDepth;
+                    } else if (fallbackAnyRate > 0) {
+                        finalStreamRate = fallbackAnyRate;
+                    }
+
+                    if (finalStreamRate > 0) {
+                        activeStreamRate = finalStreamRate;
+                        status.sourceRate = finalStreamRate;
+                        status.sourceBitDepth = finalBitDepth;
                     }
                 }
             }
@@ -610,12 +690,15 @@ public class AudioEngine {
                 if (usbfsDirectActive) {
                     // Direct USB is exclusive, bypassing Android AudioMixer & AudioFlinger completely
                     status.routeType = "DIRECT_PCM";
-                    int finalRate = (lockedRate > 0) ? lockedRate : (activeStreamRate > 0 ? activeStreamRate : (status.sourceRate > 0 ? status.sourceRate : (directRate > 0 ? directRate : 96000)));
-                    status.sourceRate = (activeStreamRate > 0) ? activeStreamRate : finalRate;
+                    int detectedStreamRate = (activeStreamRate > 0) ? activeStreamRate : (status.sourceRate > 0 ? status.sourceRate : (directRate > 0 ? directRate : 96000));
+                    int finalRate = (lockedRate > 0) ? lockedRate : detectedStreamRate;
+                    status.sourceRate = (lockedRate > 0 && activeStreamRate > 0) ? activeStreamRate : finalRate;
                     status.dacRate = finalRate;
-                    if (status.sourceBitDepth.isEmpty()) status.sourceBitDepth = "24-bit";
+                    if (status.sourceBitDepth == null || status.sourceBitDepth.isEmpty() || "16-bit".equals(status.sourceBitDepth)) {
+                        status.sourceBitDepth = "24-bit";
+                    }
                     status.dacFormat = "24-bit (Direct USB) • Direct PCM (Bit-Perfect)";
-                    status.isBitPerfect = true;
+                    status.isBitPerfect = (status.sourceRate == status.dacRate);
                 } else if (alsaHwRate > 0) {
                     // ALSA stream verified directly from DAC driver
                     status.dacRate = (lockedRate > 0) ? lockedRate : alsaHwRate;

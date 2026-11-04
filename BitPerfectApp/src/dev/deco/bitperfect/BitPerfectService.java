@@ -53,9 +53,9 @@ public class BitPerfectService extends Service {
                     intent.putExtra("matchStatus", status.matchStatus);
                     sendBroadcast(intent);
 
-                    // Per-App Auto Bypass Alignment (Only active when manual rate is not locked)
+                    // Per-App Auto Bypass Alignment (Only active when manual rate is not locked and not direct USB)
                     int manualRate = AudioEngine.getTargetRate(BitPerfectService.this);
-                    if (mIsAutoSwitch && manualRate == 0 && status.isAppBypassed) {
+                    if (mIsAutoSwitch && manualRate == 0 && status.isAppBypassed && !"DIRECT_PCM".equals(status.routeType)) {
                         if (status.sourceRate > 0 && status.sourceRate != mLastSourceRate && status.sourceRate != status.dacRate) {
                             mLastSourceRate = status.sourceRate;
                             Log.i(TAG, "Auto-aligning DAC Clock for " + status.activeApp + ": " + status.sourceRate + " Hz");

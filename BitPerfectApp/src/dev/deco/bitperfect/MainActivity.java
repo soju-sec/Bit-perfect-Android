@@ -263,9 +263,14 @@ public class MainActivity extends Activity {
     private void setupListeners() {
         btnToggleAutoSync.setOnClickListener(v -> {
             mAutoRate = !mAutoRate;
+            if (mAutoRate) {
+                mSelectedRate = 0;
+                highlightRateButton(0);
+                new Thread(() -> AudioEngine.setDacRate(MainActivity.this, 0, mSelectedBitDepth, true)).start();
+            }
             updateAutoSyncPill();
             restartMonitorService();
-            Toast.makeText(MainActivity.this, "Auto-Sync Clock: " + (mAutoRate ? "Aktif" : "Nonaktif"), Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, "Auto-Sync Clock: " + (mAutoRate ? "Aktif (Mengikuti Stream)" : "Nonaktif (Manual Lock)"), Toast.LENGTH_SHORT).show();
         });
 
         if (btnApplyEngine != null) {
@@ -490,6 +495,8 @@ public class MainActivity extends Activity {
 
     private void selectRate(int rateHz, Button clickedBtn) {
         mSelectedRate = rateHz;
+        mAutoRate = (rateHz == 0);
+        updateAutoSyncPill();
         highlightRateButton(rateHz);
 
         new Thread(() -> {
