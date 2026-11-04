@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -119,6 +120,16 @@ public class MainActivity extends Activity {
         AudioEngine.requestRootPermissions(this);
         startMonitorService();
         loadAndRenderInstalledApps();
+
+        new Thread(() -> {
+            boolean active = AudioEngine.isEngineActive();
+            SharedPreferences prefs = getSharedPreferences("bitperfect_prefs", Context.MODE_PRIVATE);
+            boolean autoApply = prefs.getBoolean("auto_apply_engine", true);
+            if (!active && autoApply) {
+                AudioEngine.applyEngineTweaks(MainActivity.this);
+            }
+            checkAndUpdateEngineStatus();
+        }).start();
     }
 
     private void initViews() {
@@ -223,6 +234,10 @@ public class MainActivity extends Activity {
         pageRate.setVisibility(tabIndex == 2 ? View.VISIBLE : View.GONE);
         pageSettings.setVisibility(tabIndex == 3 ? View.VISIBLE : View.GONE);
 
+        if (tabIndex == 3) {
+            checkAndUpdateEngineStatus();
+        }
+
         int activeColor = getColor(R.color.dock_icon_active);
         int inactiveColor = getColor(R.color.dock_icon_inactive);
 
@@ -251,10 +266,12 @@ public class MainActivity extends Activity {
 
         if (btnPurgeModule != null) {
             btnPurgeModule.setOnClickListener(v -> {
+                Toast.makeText(MainActivity.this, "Mematikan media & mengembalikan audio ke mode stock...", Toast.LENGTH_SHORT).show();
                 new Thread(() -> {
-                    boolean ok = AudioEngine.purgeOldModule();
+                    boolean ok = AudioEngine.restoreStockAudio(MainActivity.this);
                     runOnUiThread(() -> {
-                        Toast.makeText(MainActivity.this, ok ? "🗑️ Modul lama dibersihkan! Sistem audio stabil tanpa lag." : "Gagal membersihkan modul", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, ok ? "Audio dikembalikan ke mode stock normal. Volume dibisukan demi keselamatan." : "Gagal mengembalikan audio", Toast.LENGTH_LONG).show();
+                        checkAndUpdateEngineStatus();
                     });
                 }).start();
             });
@@ -371,10 +388,23 @@ public class MainActivity extends Activity {
     }
 
     private void applyEngineWithToast() {
+        Toast.makeText(MainActivity.this, "Menerapkan Engine Bit-Perfect & mematikan audio...", Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             boolean ok = AudioEngine.applyEngineTweaks(MainActivity.this);
             runOnUiThread(() -> {
-                Toast.makeText(MainActivity.this, ok ? "⚡ Engine Bypass Mixer Aktif & Diterapkan!" : "Gagal menerapkan tweak (Periksa izin KernelSU)", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, ok ? "⚡ Engine Bit-Perfect Aktif! Volume dibisukan demi keselamatan." : "Gagal menerapkan tweak (Periksa izin Root)", Toast.LENGTH_LONG).show();
+                checkAndUpdateEngineStatus();
+            });
+        }).start();
+    }
+
+    private void checkAndUpdateEngineStatus() {
+        new Thread(() -> {
+            boolean active = AudioEngine.isEngineActive();
+            runOnUiThread(() -> {
+                if (btnApplyEngine != null) {
+                    btnApplyEngine.setText(active ? "⚡ Engine Bit-Perfect AKTIF (Refresh)" : "⚡ Terapkan Engine Root Standalone");
+                }
             });
         }).start();
     }
@@ -556,6 +586,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        checkAndUpdateEngineStatus();
         IntentFilter filter = new IntentFilter(BitPerfectService.ACTION_STATUS_UPDATE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(mStatusReceiver, filter, Context.RECEIVER_NOT_EXPORTED);

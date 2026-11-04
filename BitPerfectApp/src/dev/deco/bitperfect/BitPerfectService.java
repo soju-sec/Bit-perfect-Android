@@ -49,6 +49,7 @@ public class BitPerfectService extends Service {
                     intent.putExtra("activePkg", status.activePkg);
                     intent.putExtra("trackInfo", status.trackInfo);
                     intent.putExtra("isAppBypassed", status.isAppBypassed);
+                    intent.putExtra("isMixerBypassed", status.isMixerBypassed);
                     intent.putExtra("matchStatus", status.matchStatus);
                     sendBroadcast(intent);
 

@@ -20,6 +20,7 @@ echo "=== 3. Linking resources (aapt2 link) ==="
     --manifest AndroidManifest.xml \
     -o unaligned.apk \
     --java build/gen \
+    -A assets \
     compiled_res.zip
 
 echo "=== 4. Compiling Java sources (javac) ==="
