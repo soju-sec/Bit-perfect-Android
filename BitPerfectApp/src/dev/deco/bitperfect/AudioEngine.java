@@ -1123,11 +1123,11 @@ public class AudioEngine {
         cmds.append("umount -l /system/lib64/libaudiopolicymanagerdefault.so 2>/dev/null || true\n");
         cmds.append("rm -rf /data/local/tmp/bitperfect_engine 2>/dev/null || true\n");
 
-        // High-Resolution & USB properties (Video-Safe: usb_offload must be FALSE to avoid Hexagon DSP QMI jitter)
+        // High-Resolution & USB properties (Qualcomm Kona requires usb_offload TRUE for USB audio routing)
         cmds.append("resetprop -n persist.vendor.audio.samplerates \"44100,48000,88200,96000,176400,192000,352800,384000\"\n");
         cmds.append("resetprop -n ro.audio.samplerates \"44100,48000,88200,96000,176400,192000,352800,384000\"\n");
-        cmds.append("resetprop -n vendor.audio.feature.usb_offload.enable false\n");
-        cmds.append("resetprop -n vendor.audio.feature.usb_offload_burst_mode.enable false\n");
+        cmds.append("resetprop -n vendor.audio.feature.usb_offload.enable true\n");
+        cmds.append("resetprop -n vendor.audio.feature.usb_offload_burst_mode.enable true\n");
         cmds.append("resetprop -n vendor.audio.feature.hifi_audio.enable true\n");
         cmds.append("resetprop -n vendor.audio.usb.super_high_res true\n");
         cmds.append("resetprop -n audio.safemedia.bypass true\n");
@@ -1190,9 +1190,9 @@ public class AudioEngine {
         // Remove old module leftovers if any
         cmds.append("rm -rf /data/adb/modules/disable_resample_48k /data/adb/modules_update/disable_resample_48k 2>/dev/null || true\n");
 
-        // Reset properties to stock defaults (Video-Safe, usb_offload disabled)
-        cmds.append("resetprop -n vendor.audio.feature.usb_offload.enable false\n");
-        cmds.append("resetprop -n vendor.audio.feature.usb_offload_burst_mode.enable false\n");
+        // Reset properties to stock defaults (Qualcomm Kona requires usb_offload enabled for USB DAC)
+        cmds.append("resetprop -n vendor.audio.feature.usb_offload.enable true\n");
+        cmds.append("resetprop -n vendor.audio.feature.usb_offload_burst_mode.enable true\n");
         cmds.append("resetprop -n audio.deep_buffer.media true\n");
         cmds.append("resetprop -p --delete ro.audio.flinger_standbytime_ms\n");
         cmds.append("resetprop -p --delete aaudio.mmap_policy\n");
@@ -1291,8 +1291,8 @@ public class AudioEngine {
         // Root / Vendor properties fallback (universal across Snapdragon & OEM HALs)
         try {
             StringBuilder cmds = new StringBuilder();
-            cmds.append("resetprop -n vendor.audio.feature.usb_offload.enable false\n");
-            cmds.append("resetprop -n vendor.audio.feature.usb_offload_burst_mode.enable false\n");
+            cmds.append("resetprop -n vendor.audio.feature.usb_offload.enable true\n");
+            cmds.append("resetprop -n vendor.audio.feature.usb_offload_burst_mode.enable true\n");
             if (targetRate == 0) {
                 cmds.append("resetprop -n persist.vendor.audio.samplerates 44100,48000,88200,96000,176400,192000,352800,384000\n");
                 cmds.append("resetprop -p --delete persist.vendor.audio_hal.dsp_bit_width_enforce_mode 2>/dev/null || true\n");
