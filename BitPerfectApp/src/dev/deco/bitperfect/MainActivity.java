@@ -146,6 +146,11 @@ public class MainActivity extends Activity {
         navTabRate = findViewById(R.id.navTabRate);
         navTabSettings = findViewById(R.id.navTabSettings);
 
+        View layoutBottomDock = findViewById(R.id.layoutBottomDock);
+        if (layoutBottomDock != null) {
+            layoutBottomDock.setClipToOutline(true);
+        }
+
         tvNavDashboard = findViewById(R.id.tvNavDashboard);
         tvNavApps = findViewById(R.id.tvNavApps);
         tvNavRate = findViewById(R.id.tvNavRate);

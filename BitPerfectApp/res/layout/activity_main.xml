@@ -787,7 +787,7 @@
         android:gravity="center_vertical"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
-        android:elevation="8dp">
+        android:elevation="12dp">
 
         <!-- Tab 1: Dashboard (Home) -->
         <LinearLayout
@@ -797,6 +797,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
+            android:background="@drawable/bg_dock_tab_ripple"
             android:clickable="true"
             android:focusable="true">
 
@@ -827,6 +828,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
+            android:background="@drawable/bg_dock_tab_ripple"
             android:clickable="true"
             android:focusable="true">
 
@@ -878,6 +880,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
+            android:background="@drawable/bg_dock_tab_ripple"
             android:clickable="true"
             android:focusable="true">
 
@@ -908,6 +911,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
+            android:background="@drawable/bg_dock_tab_ripple"
             android:clickable="true"
             android:focusable="true">
 
