@@ -1107,33 +1107,23 @@ public class AudioEngine {
     }
 
     public static boolean applyEngineTweaks(Context context) {
-        Log.i(TAG, "Applying Root Audio HAL Engine Tweaks (Bit-Perfect Direct PCM Bypass)...");
+        Log.i(TAG, "Applying Root Audio HAL Engine Tweaks (Native Hi-Res & Video-Safe)...");
 
-        // 1. Extract engine config files from assets to staging
-        extractEngineFiles(context);
-
-        // 2. Build root command sequence with STRICT SAFETY FIRST
         StringBuilder cmds = new StringBuilder();
 
-        // STRICT SAFETY FIRST: Mute stream 3 (Media) & 10, pause playback, stop players
+        // Safety: mute media during audio HAL restart to protect ears
         cmds.append("cmd audio set-volume 3 0\n");
         cmds.append("cmd audio set-volume 10 0\n");
         cmds.append("input keyevent 127\n"); // KEYCODE_MEDIA_PAUSE
-        cmds.append("am force-stop com.aspiro.tidal 2>/dev/null || true\n");
-        cmds.append("am force-stop com.apple.android.music 2>/dev/null || true\n");
-        cmds.append("am force-stop com.google.android.youtube 2>/dev/null || true\n");
-        cmds.append("am force-stop com.google.android.apps.youtube.music 2>/dev/null || true\n");
-        cmds.append("am force-stop com.spotify.music 2>/dev/null || true\n");
-        cmds.append("am force-stop com.zarz.mornye 2>/dev/null || true\n");
-        cmds.append("am force-stop com.music.bitchord 2>/dev/null || true\n");
 
-        // Bind-mount patched audio policies & direct PCM bypass library
-        cmds.append("mount -o bind /data/local/tmp/bitperfect_engine/audio_policy_configuration.xml /vendor/etc/audio_policy_configuration.xml\n");
-        cmds.append("mount -o bind /data/local/tmp/bitperfect_engine/audio_io_policy.conf /vendor/etc/audio_io_policy.conf\n");
-        cmds.append("mount -o bind /data/local/tmp/bitperfect_engine/audio_effects.xml /vendor/etc/audio_effects.xml\n");
-        cmds.append("mount -o bind /data/local/tmp/bitperfect_engine/libaudiopolicymanagerdefault.so /system/lib64/libaudiopolicymanagerdefault.so\n");
+        // Clean unmount of any legacy mounts if left over
+        cmds.append("umount -l /vendor/etc/audio_policy_configuration.xml 2>/dev/null || true\n");
+        cmds.append("umount -l /vendor/etc/audio_io_policy.conf 2>/dev/null || true\n");
+        cmds.append("umount -l /vendor/etc/audio_effects.xml 2>/dev/null || true\n");
+        cmds.append("umount -l /system/lib64/libaudiopolicymanagerdefault.so 2>/dev/null || true\n");
+        cmds.append("rm -rf /data/local/tmp/bitperfect_engine 2>/dev/null || true\n");
 
-        // High-Resolution & USB Offload properties
+        // High-Resolution & USB Offload properties (Video-Safe, Deep Buffer Protected)
         cmds.append("resetprop -n persist.vendor.audio.samplerates \"44100,48000,88200,96000,176400,192000,352800,384000\"\n");
         cmds.append("resetprop -n ro.audio.samplerates \"44100,48000,88200,96000,176400,192000,352800,384000\"\n");
         cmds.append("resetprop -n vendor.audio.feature.usb_offload.enable true\n");
@@ -1142,33 +1132,28 @@ public class AudioEngine {
         cmds.append("resetprop -n vendor.audio.usb.super_high_res true\n");
         cmds.append("resetprop -n audio.safemedia.bypass true\n");
         cmds.append("resetprop -n persist.vendor.audio.format.24bit true\n");
-        cmds.append("resetprop -n persist.vendor.audio_hal.dsp_bit_width_enforce_mode 24\n");
-        cmds.append("resetprop -n af.fast_track_multiplier 2\n");
-        cmds.append("resetprop -n aaudio.mmap_policy 2\n");
-        cmds.append("resetprop -n aaudio.mmap_exclusive_policy 2\n");
 
-        // ANTI-STUTTER: Deep buffer must remain ENABLED for video apps (YouTube, TikTok, Instagram)
+        // ANTI-STUTTER: Strictly DELETE forced dsp bit-width and MMAP policy so video apps (Instagram, YouTube) never stutter
+        cmds.append("resetprop -p --delete persist.vendor.audio_hal.dsp_bit_width_enforce_mode 2>/dev/null || true\n");
+        cmds.append("resetprop -p --delete aaudio.mmap_policy 2>/dev/null || true\n");
+        cmds.append("resetprop -p --delete aaudio.mmap_exclusive_policy 2>/dev/null || true\n");
         cmds.append("resetprop -n audio.deep_buffer.media true\n");
-
-        // ANTI-POP / ANTI-TUK-TUK: Delete standbytime_ms 1000 so amplifier stays stable
-        cmds.append("resetprop -p --delete ro.audio.flinger_standbytime_ms\n");
+        cmds.append("resetprop -p --delete ro.audio.flinger_standbytime_ms 2>/dev/null || true\n");
 
         // Restart audio HAL & audioserver safely
         cmds.append("pkill -9 -f android.hardware.audio.service || true\n");
         cmds.append("killall -9 audioserver || true\n");
         cmds.append("sleep 2\n");
-        // Re-enforce zero volume post-restart to guarantee safety
-        cmds.append("cmd audio set-volume 3 0\n");
+        cmds.append("cmd audio set-volume 3 10\n");
 
         String out = runRootCommand(cmds.toString());
         return out != null;
     }
 
     public static boolean restoreStockAudio(Context context) {
-        Log.i(TAG, "Restoring stock Android audio HAL and unmounting engine...");
+        Log.i(TAG, "Restoring stock Android audio HAL and clearing engine tweaks...");
         StringBuilder cmds = new StringBuilder();
 
-        // STRICT SAFETY FIRST
         cmds.append("cmd audio set-volume 3 0\n");
         cmds.append("cmd audio set-volume 10 0\n");
         cmds.append("input keyevent 127\n");
@@ -1195,20 +1180,22 @@ public class AudioEngine {
             } catch (Exception ignored) {}
         }
 
-        // Unmount patched configurations
-        cmds.append("umount /vendor/etc/audio_policy_configuration.xml 2>/dev/null || true\n");
-        cmds.append("umount /vendor/etc/audio_io_policy.conf 2>/dev/null || true\n");
-        cmds.append("umount /vendor/etc/audio_effects.xml 2>/dev/null || true\n");
-        cmds.append("umount /system/lib64/libaudiopolicymanagerdefault.so 2>/dev/null || true\n");
+        // Lazy unmount of all patched configurations
+        cmds.append("umount -l /vendor/etc/audio_policy_configuration.xml 2>/dev/null || true\n");
+        cmds.append("umount -l /vendor/etc/audio_io_policy.conf 2>/dev/null || true\n");
+        cmds.append("umount -l /vendor/etc/audio_effects.xml 2>/dev/null || true\n");
+        cmds.append("umount -l /system/lib64/libaudiopolicymanagerdefault.so 2>/dev/null || true\n");
+        cmds.append("rm -rf /data/local/tmp/bitperfect_engine 2>/dev/null || true\n");
 
         // Remove old module leftovers if any
         cmds.append("rm -rf /data/adb/modules/disable_resample_48k /data/adb/modules_update/disable_resample_48k 2>/dev/null || true\n");
 
-        // Reset properties
+        // Reset properties to stock defaults
         cmds.append("resetprop -n audio.deep_buffer.media true\n");
         cmds.append("resetprop -p --delete ro.audio.flinger_standbytime_ms\n");
         cmds.append("resetprop -p --delete aaudio.mmap_policy\n");
         cmds.append("resetprop -p --delete aaudio.mmap_exclusive_policy\n");
+        cmds.append("resetprop -p --delete vendor.audio.usb.super_high_res 2>/dev/null || true\n");
         cmds.append("resetprop -n persist.vendor.audio.samplerates 44100,48000,88200,96000,176400,192000,352800,384000\n");
         cmds.append("resetprop -p --delete persist.vendor.audio_hal.dsp_bit_width_enforce_mode 2>/dev/null || true\n");
         cmds.append("resetprop -p --delete persist.vendor.audio.format.24bit 2>/dev/null || true\n");
@@ -1217,15 +1204,15 @@ public class AudioEngine {
         cmds.append("pkill -9 -f android.hardware.audio.service || true\n");
         cmds.append("killall -9 audioserver || true\n");
         cmds.append("sleep 2\n");
-        cmds.append("cmd audio set-volume 3 0\n");
+        cmds.append("cmd audio set-volume 3 10\n");
 
         String out = runRootCommand(cmds.toString());
         return out != null;
     }
 
     public static boolean isEngineActive() {
-        String mounts = runPrivilegedCommand("mount");
-        return mounts != null && mounts.contains("audio_policy_configuration.xml");
+        String prop = runPrivilegedCommand("getprop vendor.audio.usb.super_high_res");
+        return prop != null && prop.trim().equals("true");
     }
 
     public static boolean purgeOldModule() {
