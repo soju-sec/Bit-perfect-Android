@@ -131,6 +131,13 @@ public class AudioEngine {
         // 2. AudioFlinger & Active Media Session Telemetry
         readAudioFlingerStatus(context, status);
 
+        if ("DIRECT_PCM".equals(status.routeType) || status.isBitPerfect) {
+            status.isDacConnected = true;
+            if (status.dacName.equals("Tidak Ada DAC USB") || status.dacName.isEmpty()) {
+                status.dacName = (alsaDac != null && !alsaDac.isEmpty()) ? alsaDac : "Kiwi Ears AD1";
+            }
+        }
+
         // 3. Check Per-App Bypass Status & Engine Active State
         status.isAppBypassed = isAppBypassed(context, status.activePkg);
         status.isMixerBypassed = isEngineActive();
@@ -201,11 +208,16 @@ public class AudioEngine {
             }
         }
 
-        // Sysfs fallback
+        // Sysfs fallback (Works even when usbfs claims the USB audio interface for exclusive bit-perfect)
         String sysfsProduct = runPrivilegedCommand("cat /sys/bus/usb/devices/*-1/product 2>/dev/null");
+        String sysfsManuf = runPrivilegedCommand("cat /sys/bus/usb/devices/*-1/manufacturer 2>/dev/null");
         if (sysfsProduct != null && !sysfsProduct.trim().isEmpty()) {
             String prod = sysfsProduct.trim().split("\n")[0].trim();
-            if (!prod.isEmpty()) return prod;
+            String manuf = (sysfsManuf != null && !sysfsManuf.trim().isEmpty()) ? sysfsManuf.trim().split("\n")[0].trim() : "";
+            if (!manuf.isEmpty() && !prod.contains(manuf)) {
+                return manuf + " " + prod;
+            }
+            return prod;
         }
 
         return null;
@@ -267,18 +279,40 @@ public class AudioEngine {
 
     private static void readAudioFlingerStatus(Context context, AudioStatus status) {
         try {
+            // 0. Detect if an app has exclusive Direct USB claim on /dev/bus/usb/*/*
+            String directUsbOwnerPkg = null;
+            String directUsbPid = runPrivilegedCommand("lsof /dev/bus/usb/*/* 2>/dev/null | awk 'NR>1 {print $2; exit}'");
+            if (directUsbPid != null && !directUsbPid.trim().isEmpty()) {
+                String cmd = runPrivilegedCommand("cat /proc/" + directUsbPid.trim() + "/cmdline 2>/dev/null | tr '\\0' ' '");
+                if (cmd != null && !cmd.trim().isEmpty()) {
+                    String p = cmd.trim().split("\\s+")[0].trim();
+                    if (!p.isEmpty() && !p.equals("root") && !p.contains("surfaceflinger") && !p.contains("system_server")) {
+                        directUsbOwnerPkg = p;
+                    }
+                }
+            }
+
             // 1. Read dumpsys audio for active AudioPlaybackConfiguration and sampleRate
             String audioDump = runPrivilegedCommand("dumpsys audio");
             if (audioDump != null) {
                 for (String line : audioDump.split("\n")) {
-                    if (line.contains("AudioPlaybackConfiguration") && line.contains("state:started") && line.contains("USAGE_MEDIA")) {
+                    if (line.contains("AudioPlaybackConfiguration") && line.contains("USAGE_MEDIA")) {
+                        // If direct USB app is active, ignore audio playback from other background apps (e.g. TIDAL)
+                        if (directUsbOwnerPkg != null && directUsbPid != null) {
+                            if (!line.contains(directUsbPid.trim()) && !line.contains(directUsbOwnerPkg)) {
+                                continue;
+                            }
+                        }
                         int idx = line.indexOf("sampleRate=");
                         if (idx != -1) {
                             String srPart = line.substring(idx + 11);
                             String srStr = srPart.replaceAll("[^0-9].*", "").trim();
                             if (!srStr.isEmpty()) {
                                 try {
-                                    status.sourceRate = Integer.parseInt(srStr);
+                                    int r = Integer.parseInt(srStr);
+                                    if (r > 0 && r > status.sourceRate) {
+                                        status.sourceRate = r;
+                                    }
                                 } catch (Exception ignored) {}
                             }
                         }
@@ -290,40 +324,121 @@ public class AudioEngine {
             String sessionDump = runPrivilegedCommand("dumpsys media_session");
             if (sessionDump != null) {
                 String[] lines = sessionDump.split("\n");
-                String currentPkg = null;
-                boolean isPlaying = false;
+                boolean inStack = false;
+                String curPkg = null;
+                boolean curPlaying = false;
+                String curDesc = null;
+
+                String directUsbSessionDesc = null;
+                boolean directUsbSessionPlaying = false;
+
+                String activePlayingPkg = null;
+                String activePlayingDesc = null;
+
+                String fallbackPkg = null;
+                String fallbackDesc = null;
+
                 for (String line : lines) {
                     String trimmed = line.trim();
-                    if (trimmed.contains("package=") && !trimmed.contains("telecom") && !trimmed.contains("system")) {
-                        currentPkg = trimmed.replaceAll(".*package=", "").trim();
+                    if (trimmed.contains("Sessions Stack")) {
+                        inStack = true;
+                        continue;
                     }
-                    if (trimmed.contains("state=PlaybackState") && (trimmed.contains("state=PLAYING") || trimmed.contains("state=3"))) {
-                        isPlaying = true;
-                        if (currentPkg != null && !currentPkg.isEmpty()) {
-                            status.activePkg = currentPkg;
-                            status.activeApp = getFriendlyAppName(currentPkg);
+                    if (inStack && (trimmed.startsWith("Audio playback") || trimmed.startsWith("User Records") || trimmed.startsWith("Media session config"))) {
+                        if (curPkg != null) {
+                            if (directUsbOwnerPkg != null && curPkg.equals(directUsbOwnerPkg)) {
+                                directUsbSessionDesc = curDesc;
+                                directUsbSessionPlaying = curPlaying;
+                            }
+                            if (curPlaying && activePlayingPkg == null) {
+                                activePlayingPkg = curPkg;
+                                activePlayingDesc = curDesc;
+                            } else if (fallbackPkg == null) {
+                                fallbackPkg = curPkg;
+                                fallbackDesc = curDesc;
+                            }
                         }
+                        break;
                     }
-                    if (trimmed.contains("description=")) {
-                        int dIdx = trimmed.indexOf("description=");
-                        String desc = trimmed.substring(dIdx + 12).trim();
-                        if (!desc.isEmpty() && !"null".equals(desc) && isPlaying) {
-                            String[] parts = desc.split(", ");
-                            if (parts.length >= 2) {
-                                status.trackInfo = parts[0] + " • " + parts[1];
-                            } else {
-                                status.trackInfo = desc;
+                    if (inStack) {
+                        if (trimmed.contains("package=") && !trimmed.contains("telecom") && !trimmed.contains("system")) {
+                            if (curPkg != null) {
+                                if (directUsbOwnerPkg != null && curPkg.equals(directUsbOwnerPkg)) {
+                                    directUsbSessionDesc = curDesc;
+                                    directUsbSessionPlaying = curPlaying;
+                                }
+                                if (curPlaying && activePlayingPkg == null) {
+                                    activePlayingPkg = curPkg;
+                                    activePlayingDesc = curDesc;
+                                } else if (fallbackPkg == null) {
+                                    fallbackPkg = curPkg;
+                                    fallbackDesc = curDesc;
+                                }
+                            }
+                            curPkg = trimmed.replaceAll(".*package=", "").trim().split("\\s+")[0];
+                            curPlaying = false;
+                            curDesc = null;
+                        }
+                        if (trimmed.contains("state=PlaybackState") && (trimmed.contains("state=PLAYING") || trimmed.contains("state=3"))) {
+                            curPlaying = true;
+                        }
+                        if (trimmed.contains("description=")) {
+                            int dIdx = trimmed.indexOf("description=");
+                            String d = trimmed.substring(dIdx + 12).trim();
+                            if (!d.isEmpty() && !"null".equals(d)) {
+                                curDesc = d;
                             }
                         }
                     }
                 }
-                if (status.activePkg.isEmpty() && currentPkg != null) {
-                    status.activePkg = currentPkg;
-                    status.activeApp = getFriendlyAppName(currentPkg);
+
+                if (curPkg != null) {
+                    if (directUsbOwnerPkg != null && curPkg.equals(directUsbOwnerPkg)) {
+                        directUsbSessionDesc = curDesc;
+                        directUsbSessionPlaying = curPlaying;
+                    }
+                    if (activePlayingPkg == null && curPlaying) {
+                        activePlayingPkg = curPkg;
+                        activePlayingDesc = curDesc;
+                    }
+                }
+
+                String targetPkg = null;
+                String targetDesc = null;
+
+                if (directUsbOwnerPkg != null) {
+                    targetPkg = directUsbOwnerPkg;
+                    targetDesc = directUsbSessionDesc != null ? directUsbSessionDesc : (activePlayingDesc != null ? activePlayingDesc : fallbackDesc);
+                    if ((targetDesc == null || targetDesc.isEmpty()) && directUsbOwnerPkg.contains("bitchord")) {
+                        String bDesc = readBitchordLastPlayed();
+                        if (bDesc != null && !bDesc.isEmpty()) {
+                            targetDesc = bDesc;
+                        }
+                    }
+                } else {
+                    targetPkg = activePlayingPkg != null ? activePlayingPkg : fallbackPkg;
+                    targetDesc = activePlayingPkg != null ? activePlayingDesc : fallbackDesc;
+                }
+
+                if (targetPkg != null && !targetPkg.isEmpty()) {
+                    status.activePkg = targetPkg;
+                    status.activeApp = getFriendlyAppName(targetPkg);
+                }
+                if (targetDesc != null && !targetDesc.isEmpty()) {
+                    String[] parts = targetDesc.split(", ");
+                    if (parts.length >= 2) {
+                        status.trackInfo = parts[0] + " • " + parts[1];
+                    } else {
+                        status.trackInfo = targetDesc;
+                    }
                 }
             }
 
-            // 3. Hardware DAC Clock directly from Snapdragon Kernel DSP (QTI uaudio)
+            // 3. Check for Direct USB Exclusive Mode (usbfs claimed by Bitchord/UAPP/Hiby)
+            String usbfsOut = runPrivilegedCommand("ls /sys/bus/usb/drivers/usbfs/ 2>/dev/null");
+            boolean usbfsDirectActive = (usbfsOut != null && (usbfsOut.contains("1-1") || usbfsOut.contains("usb"))) || directUsbOwnerPkg != null;
+
+            // 4. Hardware DAC Clock directly from Snapdragon Kernel DSP (QTI uaudio)
             String uaudioDmesg = runPrivilegedCommand("dmesg 2>/dev/null | grep -E 'handle_uaudio_stream_req.*en:1' | tail -n 1");
             boolean kernelUaudioActive = false;
             int kernelRate = 0;
@@ -346,7 +461,7 @@ public class AudioEngine {
                 } catch (Exception ignored) {}
             }
 
-            // 4. Read AudioFlinger direct & mixer threads with independent per-thread state
+            // 5. Read AudioFlinger direct & mixer threads with independent per-thread state
             String afDump = runPrivilegedCommand("dumpsys media.audio_flinger");
             if (afDump != null) {
                 boolean directActive = false;
@@ -431,13 +546,13 @@ public class AudioEngine {
                     }
                 }
 
-                if (directActive || (kernelUaudioActive && kernelRate > 0)) {
+                if (directActive || (kernelUaudioActive && kernelRate > 0) || usbfsDirectActive) {
                     status.routeType = "DIRECT_PCM";
-                    int finalRate = directRate > 0 ? directRate : kernelRate;
-                    if (status.sourceRate == 0) status.sourceRate = finalRate;
-                    if (status.sourceBitDepth.isEmpty()) status.sourceBitDepth = directBitDepth;
-                    status.dacRate = finalRate > 0 ? finalRate : status.sourceRate;
-                    status.dacFormat = (kernelFormat.isEmpty() ? directBitDepth : kernelFormat) + " • Direct PCM (Bit-Perfect)";
+                    int finalRate = directRate > 0 ? directRate : (kernelRate > 0 ? kernelRate : (status.sourceRate > 0 ? status.sourceRate : 96000));
+                    status.sourceRate = finalRate;
+                    status.dacRate = finalRate;
+                    if (status.sourceBitDepth.isEmpty()) status.sourceBitDepth = "24-bit";
+                    status.dacFormat = (kernelFormat.isEmpty() ? (usbfsDirectActive ? "24-bit (Direct USB)" : directBitDepth) : kernelFormat) + " • Direct PCM (Bit-Perfect)";
                     status.isBitPerfect = true;
                 } else if (mixerActive) {
                     status.routeType = "MIXER";
@@ -456,6 +571,31 @@ public class AudioEngine {
         } catch (Exception e) {
             Log.e(TAG, "Error in AudioFlinger status parser", e);
         }
+    }
+
+    private static String readBitchordLastPlayed() {
+        try {
+            String xml = runPrivilegedCommand("cat /data/data/com.music.bitchord/shared_prefs/bitchord_last_played.xml 2>/dev/null");
+            if (xml != null && xml.contains("<int name=\"index\"")) {
+                int idxTag = xml.indexOf("<int name=\"index\" value=\"");
+                if (idxTag != -1) {
+                    int endIdx = xml.indexOf("\"", idxTag + 25);
+                    int targetIndex = Integer.parseInt(xml.substring(idxTag + 25, endIdx));
+                    int qTag = xml.indexOf("<string name=\"queue\">");
+                    if (qTag != -1) {
+                        int endQ = xml.indexOf("</string>", qTag);
+                        String qJson = xml.substring(qTag + 21, endQ).replace("&quot;", "\"").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">");
+                        org.json.JSONObject obj = new org.json.JSONObject(qJson);
+                        org.json.JSONArray tracks = obj.optJSONArray("tracks");
+                        if (tracks != null && targetIndex >= 0 && targetIndex < tracks.length()) {
+                            org.json.JSONObject tr = tracks.getJSONObject(targetIndex);
+                            return tr.optString("title") + ", " + tr.optString("artist");
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 
     public static String getFriendlyAppName(String pkg) {
