@@ -301,6 +301,23 @@ public class AudioEngine {
                 } catch (Exception ignored) {}
             }
 
+            // A2. Check specialized audiophile players with active audio/USB fds (BitChord, UAPP, Hiby, Neutron, etc.)
+            if (activeHardwarePkg == null) {
+                String[] knownPlayers = new String[]{"com.music.bitchord", "com.extreamsd.usbaudioplayerpro", "com.hiby.music", "com.neutroncode.mp", "com.fiio.music"};
+                for (String playerPkg : knownPlayers) {
+                    String pidStr = runPrivilegedCommand("pidof " + playerPkg + " 2>/dev/null");
+                    if (pidStr != null && !pidStr.trim().isEmpty()) {
+                        String firstPid = pidStr.trim().split("\\s+")[0];
+                        String fds = runPrivilegedCommand("ls -l /proc/" + firstPid + "/fd 2>/dev/null | grep -E 'usb|snd'");
+                        if (fds != null && !fds.trim().isEmpty()) {
+                            activeHardwarePkg = playerPkg;
+                            try { activeHardwarePid = Integer.parseInt(firstPid); } catch (Exception ignored) {}
+                            break;
+                        }
+                    }
+                }
+            }
+
             // B. Check Active Started AudioTrack in dumpsys audio (Universal for all standard media players)
             String audioDump = runPrivilegedCommand("dumpsys audio");
             if (audioDump != null) {
@@ -444,12 +461,11 @@ public class AudioEngine {
 
                 if (activeHardwarePkg != null) {
                     targetPkg = activeHardwarePkg;
-                    targetDesc = activeHwSessionDesc != null ? activeHwSessionDesc : (activePlayingDesc != null ? activePlayingDesc : fallbackDesc);
-                    if ((targetDesc == null || targetDesc.isEmpty()) && activeHardwarePkg.contains("bitchord")) {
-                        String bDesc = readBitchordLastPlayed();
-                        if (bDesc != null && !bDesc.isEmpty()) {
-                            targetDesc = bDesc;
-                        }
+                    if (activeHardwarePkg.contains("bitchord")) {
+                        targetDesc = readBitchordTrackInfo(status);
+                    }
+                    if (targetDesc == null || targetDesc.isEmpty()) {
+                        targetDesc = activeHwSessionDesc != null ? activeHwSessionDesc : (activePlayingDesc != null ? activePlayingDesc : fallbackDesc);
                     }
                 } else {
                     targetPkg = activePlayingPkg != null ? activePlayingPkg : fallbackPkg;
@@ -686,13 +702,14 @@ public class AudioEngine {
                 }
 
                 int lockedRate = getTargetRate(context);
+                int alsaRealRate = (alsaHwRate > 0) ? alsaHwRate : status.dacRate;
 
                 if (usbfsDirectActive) {
                     // Direct USB is exclusive, bypassing Android AudioMixer & AudioFlinger completely
                     status.routeType = "DIRECT_PCM";
-                    int detectedStreamRate = (activeStreamRate > 0) ? activeStreamRate : (status.sourceRate > 0 ? status.sourceRate : (directRate > 0 ? directRate : 96000));
-                    int finalRate = (lockedRate > 0) ? lockedRate : detectedStreamRate;
-                    status.sourceRate = (lockedRate > 0 && activeStreamRate > 0) ? activeStreamRate : finalRate;
+                    int detectedStreamRate = (alsaRealRate > 0) ? alsaRealRate : ((status.sourceRate > 0) ? status.sourceRate : ((activeStreamRate > 0) ? activeStreamRate : (directRate > 0 ? directRate : 96000)));
+                    int finalRate = (alsaRealRate > 0) ? alsaRealRate : ((lockedRate > 0) ? lockedRate : detectedStreamRate);
+                    status.sourceRate = (status.sourceRate > 0) ? status.sourceRate : finalRate;
                     status.dacRate = finalRate;
                     if (status.sourceBitDepth == null || status.sourceBitDepth.isEmpty() || "16-bit".equals(status.sourceBitDepth)) {
                         status.sourceBitDepth = "24-bit";
@@ -701,7 +718,7 @@ public class AudioEngine {
                     status.isBitPerfect = (status.sourceRate == status.dacRate);
                 } else if (alsaHwRate > 0) {
                     // ALSA stream verified directly from DAC driver
-                    status.dacRate = (lockedRate > 0) ? lockedRate : alsaHwRate;
+                    status.dacRate = (lockedRate > 0 && !status.isBitPerfect) ? lockedRate : alsaHwRate;
                     if (status.sourceRate == 0) status.sourceRate = alsaHwRate;
                     status.isBitPerfect = (status.sourceRate == status.dacRate);
                     status.routeType = status.isBitPerfect ? "DIRECT_PCM" : "MIXER";
@@ -739,7 +756,7 @@ public class AudioEngine {
         }
     }
 
-    private static String readBitchordLastPlayed() {
+    private static String readBitchordTrackInfo(AudioStatus status) {
         try {
             String xml = runPrivilegedCommand("cat /data/data/com.music.bitchord/shared_prefs/bitchord_last_played.xml 2>/dev/null");
             if (xml != null && xml.contains("<int name=\"index\"")) {
@@ -755,13 +772,33 @@ public class AudioEngine {
                         org.json.JSONArray tracks = obj.optJSONArray("tracks");
                         if (tracks != null && targetIndex >= 0 && targetIndex < tracks.length()) {
                             org.json.JSONObject tr = tracks.getJSONObject(targetIndex);
-                            return tr.optString("title") + ", " + tr.optString("artist");
+                            String title = tr.optString("title", "");
+                            String artist = tr.optString("artist", "");
+                            if (status != null) {
+                                int sr = tr.optInt("sampleRate", 0);
+                                if (sr == 0) sr = tr.optInt("samplerate", 0);
+                                if (sr == 0) sr = tr.optInt("rate", 0);
+                                if (sr > 0) status.sourceRate = sr;
+
+                                int bd = tr.optInt("bitDepth", 0);
+                                if (bd == 0) bd = tr.optInt("bit_depth", 0);
+                                if (bd == 16 || bd == 24 || bd == 32) {
+                                    status.sourceBitDepth = bd + "-bit";
+                                }
+                            }
+                            if (!title.isEmpty()) {
+                                return artist.isEmpty() ? title : (title + ", " + artist);
+                            }
                         }
                     }
                 }
             }
         } catch (Exception ignored) {}
         return null;
+    }
+
+    private static String readBitchordLastPlayed() {
+        return readBitchordTrackInfo(null);
     }
 
     public static String getFriendlyAppName(Context context, String pkg) {
@@ -1141,6 +1178,22 @@ public class AudioEngine {
         cmds.append("am force-stop com.google.android.apps.youtube.music 2>/dev/null || true\n");
         cmds.append("am force-stop com.spotify.music 2>/dev/null || true\n");
         cmds.append("am force-stop com.zarz.mornye 2>/dev/null || true\n");
+        cmds.append("am force-stop com.music.bitchord 2>/dev/null || true\n");
+
+        // Clear preferred mixer attributes on USB audio device
+        if (context != null) {
+            try {
+                AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+                AudioDeviceInfo usbDev = getUsbDevice(context);
+                if (am != null && usbDev != null) {
+                    AudioAttributes mediaAttrs = new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .build();
+                    am.clearPreferredMixerAttributes(mediaAttrs, usbDev);
+                }
+            } catch (Exception ignored) {}
+        }
 
         // Unmount patched configurations
         cmds.append("umount /vendor/etc/audio_policy_configuration.xml 2>/dev/null || true\n");
@@ -1156,6 +1209,9 @@ public class AudioEngine {
         cmds.append("resetprop -p --delete ro.audio.flinger_standbytime_ms\n");
         cmds.append("resetprop -p --delete aaudio.mmap_policy\n");
         cmds.append("resetprop -p --delete aaudio.mmap_exclusive_policy\n");
+        cmds.append("resetprop -n persist.vendor.audio.samplerates 44100,48000,88200,96000,176400,192000,352800,384000\n");
+        cmds.append("resetprop -p --delete persist.vendor.audio_hal.dsp_bit_width_enforce_mode 2>/dev/null || true\n");
+        cmds.append("resetprop -p --delete persist.vendor.audio.format.24bit 2>/dev/null || true\n");
 
         // Restart audio HAL & audioserver safely
         cmds.append("pkill -9 -f android.hardware.audio.service || true\n");
@@ -1214,7 +1270,7 @@ public class AudioEngine {
                         .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                         .build();
 
-                if (targetRate == 0 && targetBitDepth == 0) {
+                if (targetRate == 0) {
                     am.clearPreferredMixerAttributes(mediaAttrs, usbDev);
                     success = true;
                 } else {
@@ -1234,21 +1290,11 @@ public class AudioEngine {
                             .setEncoding(encoding)
                             .build();
 
-                    // 1. Try bit-perfect direct mixer behavior
-                    try {
-                        AudioMixerAttributes bitPerfectAttr = new AudioMixerAttributes.Builder(format)
-                                .setMixerBehavior(AudioMixerAttributes.MIXER_BEHAVIOR_BIT_PERFECT)
-                                .build();
-                        success = am.setPreferredMixerAttributes(mediaAttrs, usbDev, bitPerfectAttr);
-                    } catch (Exception ignored) {}
-
-                    // 2. Fallback to default mixer attribute with locked sample rate
-                    if (!success) {
-                        AudioMixerAttributes mixerAttr = new AudioMixerAttributes.Builder(format)
-                                .setMixerBehavior(AudioMixerAttributes.MIXER_BEHAVIOR_DEFAULT)
-                                .build();
-                        success = am.setPreferredMixerAttributes(mediaAttrs, usbDev, mixerAttr);
-                    }
+                    // Set preferred mixer attributes with DEFAULT behavior so system media (videos, Instagram, YouTube) can still mix smoothly
+                    AudioMixerAttributes mixerAttr = new AudioMixerAttributes.Builder(format)
+                            .setMixerBehavior(AudioMixerAttributes.MIXER_BEHAVIOR_DEFAULT)
+                            .build();
+                    success = am.setPreferredMixerAttributes(mediaAttrs, usbDev, mixerAttr);
                 }
             }
         } catch (Exception ignored) {}
@@ -1258,23 +1304,11 @@ public class AudioEngine {
             StringBuilder cmds = new StringBuilder();
             if (targetRate == 0) {
                 cmds.append("resetprop -n persist.vendor.audio.samplerates 44100,48000,88200,96000,176400,192000,352800,384000\n");
+                cmds.append("resetprop -p --delete persist.vendor.audio_hal.dsp_bit_width_enforce_mode 2>/dev/null || true\n");
             } else {
-                cmds.append("resetprop -n persist.vendor.audio.samplerates ").append(targetRate).append("\n");
-            }
-
-            if (targetBitDepth == 16) {
-                cmds.append("resetprop -n persist.vendor.audio_hal.dsp_bit_width_enforce_mode 16\n");
-                cmds.append("resetprop -n persist.vendor.audio.format.24bit false\n");
-            } else if (targetBitDepth == 24) {
-                cmds.append("resetprop -n persist.vendor.audio_hal.dsp_bit_width_enforce_mode 24\n");
+                cmds.append("resetprop -n persist.vendor.audio.samplerates 44100,48000,88200,96000,176400,192000,352800,384000\n");
                 cmds.append("resetprop -n persist.vendor.audio.format.24bit true\n");
-            } else if (targetBitDepth == 32) {
-                cmds.append("resetprop -n persist.vendor.audio_hal.dsp_bit_width_enforce_mode 32\n");
-                cmds.append("resetprop -n persist.vendor.audio.format.24bit true\n");
-                cmds.append("resetprop -n persist.vendor.audio.format.32bit true\n");
-            } else { // Auto
-                cmds.append("resetprop -n persist.vendor.audio.format.24bit true\n");
-                cmds.append("resetprop -n persist.vendor.audio_hal.dsp_bit_width_enforce_mode 24\n");
+                cmds.append("resetprop -p --delete persist.vendor.audio_hal.dsp_bit_width_enforce_mode 2>/dev/null || true\n");
             }
 
             runRootCommand(cmds.toString());
